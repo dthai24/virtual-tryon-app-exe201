@@ -1,6 +1,0 @@
-__turbopack_load_page_chunks__("/shop/add-product", [
-  "static/chunks/0x84mzs6iyhov.js",
-  "static/chunks/06fj527yyat20.js",
-  "static/chunks/0k~pcc6wo9pha.js",
-  "static/chunks/turbopack-12fyzbor~uwxe.js"
-])

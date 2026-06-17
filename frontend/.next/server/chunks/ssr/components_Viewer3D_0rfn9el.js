@@ -1,3 +1,0 @@
-module.exports=[6179,a=>{"use strict";var b=a.i(8171);a.i(7669),a.s(["default",0,function({videoUrl:a,loading:c}){if(c||!a)return null;let d=a.match(/\.(mp4|webm|ogg)$/i);return(0,b.jsx)("div",{style:{width:"100%",height:"100%",display:"flex",justifyContent:"center",alignItems:"center"},children:d?(0,b.jsx)("video",{src:a,autoPlay:!0,loop:!0,muted:!0,controls:!0,style:{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:"8px"}}):(0,b.jsx)("img",{src:a,alt:"AI Generated Fit",style:{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",borderRadius:"8px"}})})}])},8520,a=>{a.n(a.i(6179))}];
-
-//# sourceMappingURL=components_Viewer3D_0rfn9el.js.map
