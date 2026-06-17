@@ -1,0 +1,50 @@
+{
+  "pages": {
+    "/": [
+      "static/chunks/0u0bryu.-3tp2.js",
+      "static/chunks/024_39u00usrs.js",
+      "static/chunks/0k~pcc6wo9pha.js",
+      "static/chunks/06fj527yyat20.js",
+      "static/chunks/turbopack-0gk.zrf~efijm.js"
+    ],
+    "/_app": [
+      "static/chunks/0fbixi13n7cx~.js",
+      "static/chunks/06fj527yyat20.js",
+      "static/chunks/0k~pcc6wo9pha.js",
+      "static/chunks/0piwtkxtitt6~.css",
+      "static/chunks/turbopack-0okzp--rlpetd.js"
+    ],
+    "/_error": [
+      "static/chunks/07-052ms10wq6.js",
+      "static/chunks/06fj527yyat20.js",
+      "static/chunks/0k~pcc6wo9pha.js",
+      "static/chunks/turbopack-0lf97~.i-q2ak.js"
+    ],
+    "/login": [
+      "static/chunks/0l65-n6a_vw4u.js",
+      "static/chunks/06fj527yyat20.js",
+      "static/chunks/0k~pcc6wo9pha.js",
+      "static/chunks/turbopack-0krixqr0hgijs.js"
+    ],
+    "/shop/add-product": [
+      "static/chunks/0x84mzs6iyhov.js",
+      "static/chunks/06fj527yyat20.js",
+      "static/chunks/0k~pcc6wo9pha.js",
+      "static/chunks/turbopack-12fyzbor~uwxe.js"
+    ],
+    "/shop/dashboard": [
+      "static/chunks/01xeogbsmcj8c.js",
+      "static/chunks/06fj527yyat20.js",
+      "static/chunks/0k~pcc6wo9pha.js",
+      "static/chunks/turbopack-17tyiiez4xhqu.js"
+    ]
+  },
+  "devFiles": [],
+  "polyfillFiles": [],
+  "lowPriorityFiles": [
+    "static/ztm49Hh5FLx79TZEVt-q5/_buildManifest.js",
+    "static/ztm49Hh5FLx79TZEVt-q5/_ssgManifest.js",
+    "static/ztm49Hh5FLx79TZEVt-q5/_clientMiddlewareManifest.js"
+  ],
+  "rootMainFiles": []
+}

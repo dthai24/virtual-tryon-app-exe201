@@ -1,0 +1,5 @@
+{
+  "/shop/add-product": [
+    "static/chunks/pages/shop/add-product.js"
+  ]
+}
