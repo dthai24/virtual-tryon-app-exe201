@@ -6,12 +6,11 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const TryonHistory = require('../models/TryonHistory');
 const CreditTransaction = require('../models/CreditTransaction');
+const { generateCatwalkVideo, generateVirtualTryOn } = require('../services/falTryon');
 
 const router = express.Router();
+const MAX_FACE_IMAGE_SIZE_MB = 15;
 
-// ============================================================
-// CẤU HÌNH MULTER — Lưu ảnh khuôn mặt người dùng
-// ============================================================
 const uploadDir = path.join(__dirname, '..', 'public', 'uploads', 'faces');
 
 if (!fs.existsSync(uploadDir)) {
@@ -34,76 +33,38 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Chỉ chấp nhận định dạng ảnh JPEG, PNG, WebP'), false);
+    cb(new Error('Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP'), false);
   }
 };
 
 const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn 5MB cho ảnh mặt
+  storage,
+  fileFilter,
+  limits: { fileSize: MAX_FACE_IMAGE_SIZE_MB * 1024 * 1024 },
 });
 
-// ============================================================
-// HÀM NỀN: Sinh video bất đồng bộ — chạy ngầm sau khi trả ảnh
-// ============================================================
-async function runVideoGenerationInBackground(historyId, imageUrl, height, weight, gender) {
-  console.log(`\n🎬 [Background] Bắt đầu sinh video cho lịch sử ID: ${historyId}`);
-  
-  try {
-    // Cập nhật trạng thái đang xử lý video
-    await TryonHistory.findByIdAndUpdate(historyId, {
-      video_status: 'processing',
-      status: 'processing_video',
-    });
-
-    const pythonResponse = await fetch('http://127.0.0.1:8099/api/generate-tryon-video', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        image_url: imageUrl,
-        height: height.toString(),
-        weight: weight.toString(),
-        gender: gender,
-      }),
-    });
-
-    if (!pythonResponse.ok) {
-      throw new Error(`Python video server lỗi: ${pythonResponse.status}`);
+function uploadUserFace(req, res, next) {
+  upload.single('user_face')(req, res, (error) => {
+    if (!error) {
+      return next();
     }
 
-    const videoData = await pythonResponse.json();
-    const videoUrl = videoData.video_url;
-
-    if (!videoUrl) {
-      throw new Error('Python không trả về video_url');
+    if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        success: false,
+        message: `Ảnh chân dung quá lớn. Vui lòng chọn ảnh nhỏ hơn ${MAX_FACE_IMAGE_SIZE_MB}MB.`,
+      });
     }
 
-    // Cập nhật lịch sử với video thành công
-    await TryonHistory.findByIdAndUpdate(historyId, {
-      result_video_url: videoUrl,
-      video_status: 'ready',
-      status: 'video_ready',
+    return res.status(400).json({
+      success: false,
+      message: error.message || 'Không thể upload ảnh chân dung.',
     });
-
-    console.log(`✅ [Background] Video sẵn sàng cho history ID ${historyId}: ${videoUrl}`);
-
-  } catch (err) {
-    console.error(`❌ [Background] Lỗi sinh video cho history ID ${historyId}:`, err.message);
-    // Đánh dấu thất bại nhưng ảnh tĩnh vẫn còn — không xóa ảnh
-    await TryonHistory.findByIdAndUpdate(historyId, {
-      video_status: 'failed',
-      status: 'image_ready', // Vẫn còn ảnh tĩnh dùng được
-    });
-  }
+  });
 }
 
-// ============================================================
-// API: POST /api/tryon/generate — Bước 1: Trả ảnh tĩnh NGAY
-// ============================================================
-router.post('/generate', upload.single('user_face'), async (req, res) => {
+router.post('/generate', uploadUserFace, async (req, res) => {
   try {
-    // 1. Kiểm tra file mặt tải lên
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -113,7 +74,6 @@ router.post('/generate', upload.single('user_face'), async (req, res) => {
 
     const { user_id, product_id, height, weight, gender } = req.body;
 
-    // Validate đầu vào
     if (!user_id || !product_id || !height || !weight || !gender) {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({
@@ -122,13 +82,12 @@ router.post('/generate', upload.single('user_face'), async (req, res) => {
       });
     }
 
-    // 2. Bước A: Kiểm tra thông tin người dùng & số dư Credit
     const user = await User.findById(user_id);
     if (!user) {
       fs.unlinkSync(req.file.path);
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy thông tin tài khoản người dùng!',
+        message: 'Không tìm thấy tài khoản người dùng!',
       });
     }
 
@@ -136,71 +95,47 @@ router.post('/generate', upload.single('user_face'), async (req, res) => {
       fs.unlinkSync(req.file.path);
       return res.status(402).json({
         success: false,
-        message: 'Tài khoản của bạn đã hết credit. Vui lòng nạp thêm gói để tiếp tục sử dụng dịch vụ AI Try-on!',
+        message: 'Tài khoản của bạn đã hết credit. Vui lòng nạp thêm để tiếp tục dùng AI Try-on!',
         credits: user.credits,
       });
     }
 
-    // 3. Bước B: Kiểm tra sản phẩm & lấy đường dẫn ảnh áo cục bộ
     const product = await Product.findById(product_id);
     if (!product) {
       fs.unlinkSync(req.file.path);
       return res.status(404).json({
         success: false,
-        message: 'Sản phẩm trang phục này không còn tồn tại trên hệ thống!',
+        message: 'Sản phẩm này không còn tồn tại trên hệ thống!',
       });
     }
 
-    // 4. Bước C: Gọi Python AI — CHỈ tạo ảnh tĩnh (nhanh)
     const faceLocalPath = path.resolve(req.file.path).replace(/\\/g, '/');
     const garmentLocalPath = product.garment_image_url;
 
-    console.log(`\n🤖 [Backend Gateway] Khởi chạy AI Try-on BƯỚC 1 (Ảnh tĩnh):`);
-    console.log(`- User: ${user.username} (Credits hiện tại: ${user.credits})`);
+    console.log('\n[Backend] Generating fal virtual try-on image only');
+    console.log(`- User: ${user.username} (credits: ${user.credits})`);
     console.log(`- Product: ${product.name}`);
-    console.log(`- File mặt: ${faceLocalPath}`);
-    console.log(`- File áo: ${garmentLocalPath}`);
-    console.log(`- May đo: Cao ${height}cm, Nặng ${weight}kg, Giới tính: ${gender}`);
+    console.log(`- Face image: ${faceLocalPath}`);
+    console.log(`- Garment image: ${garmentLocalPath}`);
 
-    let resultImageUrl = '';
-
+    let falResult;
     try {
-      const pythonResponse = await fetch('http://127.0.0.1:8099/api/generate-tryon-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          height: height.toString(),
-          weight: weight.toString(),
-          gender: gender,
-          face_image: faceLocalPath,
-          garment_image: garmentLocalPath,
-        }),
+      falResult = await generateVirtualTryOn({
+        personImage: faceLocalPath,
+        clothingImage: garmentLocalPath,
       });
-
-      if (!pythonResponse.ok) {
-        throw new Error(`Python image server phản hồi lỗi code: ${pythonResponse.status}`);
-      }
-
-      const aiData = await pythonResponse.json();
-      resultImageUrl = aiData.image_url;
-
-      if (!resultImageUrl) {
-        throw new Error('Python server trả về image_url rỗng');
-      }
-
-      console.log(`✅ [Backend Gateway] Nhận ảnh tĩnh từ Python: ${resultImageUrl}`);
-
+      console.log(`[Backend] fal result ready (${falResult.model}, ${falResult.requestId}): ${falResult.imageUrl}`);
     } catch (aiError) {
-      console.error('❌ [AI Image Service Error]:', aiError.message);
-      // Nếu sập: trả lỗi rõ ràng thay vì ảnh/video giả
+      console.error('[fal try-on error]', aiError.message);
       fs.unlinkSync(req.file.path);
       return res.status(503).json({
         success: false,
-        message: 'Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau!',
+        message: aiError.message.includes('FAL_KEY')
+          ? 'Backend chưa cấu hình FAL_KEY. Hãy thêm fal API key vào môi trường backend rồi khởi động lại server.'
+          : `Dịch vụ fal AI tạm thời không khả dụng: ${aiError.message}`,
       });
     }
 
-    // 5. Bước D: Trừ credit người dùng & Ghi nhận lịch sử với trạng thái "image_ready"
     user.credits -= 1;
     await user.save();
 
@@ -208,7 +143,7 @@ router.post('/generate', upload.single('user_face'), async (req, res) => {
       user_id: user._id,
       amount: -1,
       type: 'usage_deduction',
-      description: `Sử dụng 1 credit để thử đồ ảo AI cho sản phẩm: "${product.name}"`,
+      description: `Sử dụng 1 credit để thử đồ AI cho sản phẩm: "${product.name}"`,
     });
 
     const userFacePublicUrl = `http://localhost:5000/public/uploads/faces/${req.file.filename}`;
@@ -216,46 +151,33 @@ router.post('/generate', upload.single('user_face'), async (req, res) => {
       user_id: user._id,
       product_id: product._id,
       user_face_url: userFacePublicUrl,
-      result_image_url: resultImageUrl,
+      result_image_url: falResult.imageUrl,
       result_video_url: '',
       status: 'image_ready',
       video_status: 'pending',
       measurements: {
         height: Number(height),
         weight: Number(weight),
-        gender: gender,
+        gender,
       },
     });
 
-    console.log(`💾 Đã lưu lịch sử thử đồ ID: ${newHistory._id} (Ảnh sẵn sàng, Video đang chờ...)`);
-    console.log(`📉 Đã khấu trừ 1 credit của user: "${user.username}". Số credit còn lại: ${user.credits}`);
-
-    // 6. Bước E: Trả kết quả ẢNH TĨNH về Frontend NGAY — KHÔNG đợi video
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: 'Ảnh thử đồ AI sẵn sàng! Video catwalk đang được tạo ở nền...',
+      message: 'Ảnh thử đồ AI từ fal đã sẵn sàng!',
       data: {
-        result_image_url: resultImageUrl,
+        result_image_url: falResult.imageUrl,
         result_video_url: '',
         video_status: 'pending',
         remaining_credits: user.credits,
         history_id: newHistory._id,
+        fal_request_id: falResult.requestId,
+        fal_model: falResult.model,
       },
     });
-
-    // 7. Bước F: Kích hoạt sinh video ở nền (KHÔNG await — chạy độc lập)
-    runVideoGenerationInBackground(
-      newHistory._id,
-      resultImageUrl,
-      height,
-      weight,
-      gender
-    );
-    // Hàm trên chạy ngầm, không block response đã trả về ở trên
-
   } catch (error) {
-    console.error('❌ [API /api/tryon/generate Error]:', error.message);
-    
+    console.error('[API /api/tryon/generate error]', error.message);
+
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
@@ -267,10 +189,106 @@ router.post('/generate', upload.single('user_face'), async (req, res) => {
   }
 });
 
-// ============================================================
-// API: GET /api/tryon/status/:history_id — Polling trạng thái video
-// Frontend gọi định kỳ để kiểm tra video đã xong chưa
-// ============================================================
+router.post('/video', async (req, res) => {
+  try {
+    const { user_id, history_id, image_url, video_duration } = req.body;
+
+    if (!user_id || !history_id || !image_url) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thiếu thông tin bắt buộc: user_id, history_id, image_url!',
+      });
+    }
+
+    const history = await TryonHistory.findOne({
+      _id: history_id,
+      user_id,
+    });
+
+    if (!history) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy lịch sử thử đồ tương ứng!',
+      });
+    }
+
+    if (history.result_video_url) {
+      return res.status(200).json({
+        success: true,
+        message: 'Video catwalk đã sẵn sàng.',
+        data: {
+          result_image_url: history.result_image_url,
+          result_video_url: history.result_video_url,
+          video_status: history.video_status || 'ready',
+          history_id: history._id,
+        },
+      });
+    }
+
+    if (history.result_image_url !== image_url) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ảnh đầu vào không khớp với lịch sử thử đồ đã lưu!',
+      });
+    }
+
+    await TryonHistory.findByIdAndUpdate(history._id, {
+      status: 'processing_video',
+      video_status: 'processing',
+    });
+
+    console.log('\n[Backend] Generating fal catwalk video only');
+    console.log(`- History: ${history._id}`);
+    console.log(`- Image: ${image_url}`);
+
+    const falVideoResult = await generateCatwalkVideo({
+      imageUrl: image_url,
+      duration: video_duration || '5',
+    });
+
+    console.log(`[Backend] fal video ready (${falVideoResult.model}, ${falVideoResult.requestId}): ${falVideoResult.videoUrl}`);
+
+    const updatedHistory = await TryonHistory.findByIdAndUpdate(
+      history._id,
+      {
+        result_video_url: falVideoResult.videoUrl,
+        status: 'video_ready',
+        video_status: 'ready',
+      },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Video catwalk từ fal đã sẵn sàng!',
+      data: {
+        result_image_url: updatedHistory.result_image_url,
+        result_video_url: updatedHistory.result_video_url,
+        video_status: updatedHistory.video_status,
+        history_id: updatedHistory._id,
+        fal_video_request_id: falVideoResult.requestId,
+        fal_video_model: falVideoResult.model,
+      },
+    });
+  } catch (error) {
+    console.error('[API /api/tryon/video error]', error.message);
+
+    if (req.body?.history_id) {
+      await TryonHistory.findByIdAndUpdate(req.body.history_id, {
+        status: 'image_ready',
+        video_status: 'failed',
+      }).catch(() => {});
+    }
+
+    return res.status(503).json({
+      success: false,
+      message: error.message.includes('FAL_KEY')
+        ? 'Backend chưa cấu hình FAL_KEY cho video.'
+        : `Không thể dựng video catwalk: ${error.message}`,
+    });
+  }
+});
+
 router.get('/status/:history_id', async (req, res) => {
   try {
     const history = await TryonHistory.findById(req.params.history_id)
@@ -294,17 +312,13 @@ router.get('/status/:history_id', async (req, res) => {
   }
 });
 
-// ============================================================
-// API: GET /api/tryon/history/:user_id — Lấy lịch sử thử đồ
-// ============================================================
 router.get('/history/:user_id', async (req, res) => {
   try {
     const history = await TryonHistory.find({ user_id: req.params.user_id })
       .populate('product_id', 'name price garment_image_url')
       .sort({ createdAt: -1 });
 
-    // Định dạng lại các đường dẫn ảnh cục bộ thành URL hợp pháp
-    const processedHistory = history.map(item => {
+    const processedHistory = history.map((item) => {
       const itemObj = item.toObject();
       if (itemObj.product_id && itemObj.product_id.garment_image_url) {
         let imageUrl = itemObj.product_id.garment_image_url;
@@ -325,9 +339,6 @@ router.get('/history/:user_id', async (req, res) => {
   }
 });
 
-// ============================================================
-// API: POST /api/tryon/recharge — Nạp thêm credit giả lập (+5 xu)
-// ============================================================
 router.post('/recharge', async (req, res) => {
   try {
     const { user_id } = req.body;
@@ -340,11 +351,9 @@ router.post('/recharge', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản!' });
     }
 
-    // Tăng credit
     user.credits += 5;
     await user.save();
 
-    // Ghi nhận lịch sử giao dịch
     await CreditTransaction.create({
       user_id: user._id,
       amount: 5,
@@ -357,7 +366,6 @@ router.post('/recharge', async (req, res) => {
       message: 'Nạp credit thành công! Đã cộng thêm 5 xu.',
       credits: user.credits,
     });
-
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

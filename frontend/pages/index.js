@@ -62,10 +62,13 @@ export default function Home() {
   const [weight, setWeight] = useState(55);
   const [gender, setGender] = useState('female');
   const [selectedSize, setSelectedSize] = useState('M');
+  const [aiAction, setAiAction] = useState(null); // image | video
   
   // State nhận kết quả AI
   const [loadingAI, setLoadingAI] = useState(false);
   const [aiResultUrl, setAiResultUrl] = useState(null);
+  const [aiImageUrl, setAiImageUrl] = useState(null);
+  const [aiHistoryId, setAiHistoryId] = useState(null);
   const [aiError, setAiError] = useState(null);
 
   // ============================================================
@@ -324,6 +327,8 @@ export default function Home() {
     setFaceFile(null);
     setFacePreview(null);
     setAiResultUrl(null);
+    setAiImageUrl(null);
+    setAiHistoryId(null);
     setAiError(null);
     setSelectedSize(getRecommendedSize(gender, height, weight));
   };
@@ -363,8 +368,7 @@ export default function Home() {
   // ============================================================
   // GỬI YÊU CẦU XỬ LÝ AI TRY-ON (DÀNH CHO BUYER)
   // ============================================================
-  const handleStartAI = async (e) => {
-    e.preventDefault();
+  const handleStartAI = async () => {
     if (!faceFile) {
       alert('Vui lòng chọn ảnh khuôn mặt của bạn trước khi thử đồ!');
       return;
@@ -376,8 +380,11 @@ export default function Home() {
     }
 
     setLoadingAI(true);
+    setAiAction('image');
     setAiError(null);
     setAiResultUrl(null);
+    setAiImageUrl(null);
+    setAiHistoryId(null);
 
     try {
       const formDataToSend = new FormData();
@@ -393,10 +400,15 @@ export default function Home() {
         body: formDataToSend,
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      const data = contentType.includes('application/json')
+        ? await response.json()
+        : { success: false, message: await response.text() };
 
       if (response.ok && data.success) {
-        setAiResultUrl(data.data.result_video_url);
+        setAiImageUrl(data.data.result_image_url);
+        setAiHistoryId(data.data.history_id);
+        setAiResultUrl(data.data.result_image_url);
         
         // Cập nhật số credit của user
         const updatedUser = { ...user, credits: data.data.remaining_credits };
@@ -405,13 +417,62 @@ export default function Home() {
         
         // Reload lịch sử thử đồ
         fetchBuyerHistory(user._id);
+        if (data.data.video_error) {
+          setAiError(data.data.video_error);
+        }
       } else {
+        if (response.status === 413) {
+          setAiError('Ảnh tải lên quá lớn. Vui lòng chọn ảnh nhỏ hơn 15MB.');
+          return;
+        }
         setAiError(data.message || 'Xử lý AI thất bại. Vui lòng kiểm tra lại!');
       }
     } catch (err) {
       setAiError('Lỗi kết nối tới Server Gateway: ' + err.message);
     } finally {
       setLoadingAI(false);
+      setAiAction(null);
+    }
+  };
+
+  const handleGenerateVideoFromCurrentImage = async () => {
+    if (!user || !aiImageUrl || !aiHistoryId) {
+      setAiError('Bạn cần tạo ảnh thử đồ trước khi dựng video catwalk.');
+      return;
+    }
+
+    setLoadingAI(true);
+    setAiAction('video');
+    setAiError(null);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/tryon/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user._id,
+          history_id: aiHistoryId,
+          image_url: aiImageUrl,
+          video_duration: '5',
+        }),
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      const data = contentType.includes('application/json')
+        ? await response.json()
+        : { success: false, message: await response.text() };
+
+      if (response.ok && data.success) {
+        setAiResultUrl(data.data.result_video_url);
+        fetchBuyerHistory(user._id);
+      } else {
+        setAiError(data.message || 'Dựng video catwalk thất bại. Vui lòng thử lại!');
+      }
+    } catch (err) {
+      setAiError('Lỗi kết nối tới Server Gateway: ' + err.message);
+    } finally {
+      setLoadingAI(false);
+      setAiAction(null);
     }
   };
 
@@ -686,11 +747,27 @@ export default function Home() {
                   
                   {/* Nếu đã có kết quả AI */}
                   {aiResultUrl ? (
-                    <div className="mb-4">
+                    <div className="mb-4 [&>p:nth-of-type(2)]:hidden">
+                      <p className="text-[10px] font-bold text-[#ff4081] uppercase tracking-wider mb-2">
+                        {/\.(mp4|webm|ogg)(\?|$)/i.test(aiResultUrl) ? 'Kết quả video catwalk' : 'Kết quả ảnh thử đồ AI'}
+                      </p>
                       <p className="text-[10px] font-bold text-[#ff4081] uppercase tracking-wider mb-2">🎬 KẾT QUẢ THỬ ĐỒ AI CATWALK</p>
                       <div className="w-full aspect-[9/16] max-h-[380px] bg-black rounded-xl overflow-hidden flex shadow-inner">
                         <Viewer3D videoUrl={aiResultUrl} loading={false} />
                       </div>
+                      {!/\.(mp4|webm|ogg)(\?|$)/i.test(aiResultUrl) && (
+                        <button
+                          onClick={handleGenerateVideoFromCurrentImage}
+                          disabled={loadingAI}
+                          className={`w-full mt-3 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                            loadingAI
+                              ? 'bg-gray-300 text-white cursor-not-allowed'
+                              : 'bg-gradient-to-r from-[#ff4081] to-[#ff80ab] text-white shadow-md shadow-[#ff4081]/15 hover:shadow-lg'
+                          }`}
+                        >
+                          {loadingAI && aiAction === 'video' ? 'Đang dựng video...' : 'Dựng video catwalk từ ảnh này'}
+                        </button>
+                      )}
                       <button
                         onClick={() => setAiResultUrl(null)}
                         className="w-full mt-3 py-2 border border-[#ff4081] text-[#ff4081] hover:bg-[#ff4081]/5 text-xs font-bold rounded-xl transition-all cursor-pointer"
@@ -761,7 +838,8 @@ export default function Home() {
                         <div className="flex-1 flex flex-col justify-center items-center text-center py-12">
                           <span className="text-5xl animate-bounce">🔮</span>
                           <h4 className="text-base font-bold text-gray-800 mt-4">Tự ghép mặt bằng AI</h4>
-                          <p className="text-xs text-gray-400 max-w-[280px] mt-2 leading-relaxed">
+                          <p className="text-[0px] text-gray-400 max-w-[280px] mt-2 leading-relaxed">
+                            <span className="text-xs">Tạo ảnh thử đồ nhanh, có thể bật thêm video catwalk trong bước tiếp theo.</span>
                             Mất khoảng 15 giây để mô phỏng hình ảnh bạn mặc sản phẩm này catwalk.
                           </p>
                           
@@ -789,7 +867,7 @@ export default function Home() {
                         </div>
                       ) : (
                         // Form khai báo chỉ số AI
-                        <form onSubmit={handleStartAI} className="flex-1 flex flex-col justify-between">
+                        <form onSubmit={(e) => e.preventDefault()} className="flex-1 flex flex-col justify-between">
                           <div>
                             <h4 className="text-sm font-bold text-gray-800 mb-5 pb-2 border-b border-gray-200/60 flex items-center gap-2">
                               <span className="w-1 h-4 bg-[#ff4081] rounded-full"></span>
@@ -910,25 +988,30 @@ export default function Home() {
                             </div>
                           )}
 
-                          {/* Action buttons */}
                           <div className="flex gap-2 mt-4">
                             <button
                               type="button"
+                              disabled={loadingAI}
                               onClick={() => setShowTryonForm(false)}
-                              className="px-3 py-2.5 bg-white border border-gray-200 text-gray-500 hover:border-gray-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                              className={`px-3 py-2.5 bg-white border border-gray-200 text-gray-500 hover:border-gray-300 rounded-xl text-xs font-bold transition-all ${
+                                loadingAI
+                                  ? 'cursor-not-allowed opacity-60'
+                                  : 'cursor-pointer'
+                              }`}
                             >
                               Quay lại
                             </button>
                             <button
-                              type="submit"
+                              type="button"
                               disabled={loadingAI}
-                              className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md ${
+                              onClick={handleStartAI}
+                              className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-2 shadow-md ${
                                 loadingAI
                                   ? 'bg-gray-300 cursor-not-allowed shadow-none'
-                                  : 'bg-gradient-to-r from-[#ff4081] to-[#ff80ab] shadow-[#ff4081]/15 hover:shadow-lg active:scale-[0.98]'
+                                  : 'bg-gradient-to-r from-[#ff4081] to-[#ff80ab] shadow-[#ff4081]/15 hover:shadow-lg active:scale-[0.98] cursor-pointer'
                               }`}
                             >
-                              {loadingAI ? 'Dựng video catwalk...' : '⚡ Bắt đầu xử lý AI'}
+                              {loadingAI && aiAction === 'image' ? 'Đang tạo ảnh thử đồ...' : 'Tạo ảnh thử đồ'}
                             </button>
                           </div>
                         </form>
@@ -1170,7 +1253,7 @@ export default function Home() {
                         key={item._id} 
                         onClick={() => {
                           setSelectedProduct(item.product_id);
-                          setAiResultUrl(item.result_video_url);
+                          setAiResultUrl(item.result_image_url || item.result_video_url);
                           setShowProfileModal(false); // Close profile modal to focus on product detail AI viewer
                         }}
                         className="bg-gray-50 border border-gray-100 rounded-xl p-3 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all flex flex-col justify-between"

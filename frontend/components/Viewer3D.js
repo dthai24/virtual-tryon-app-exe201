@@ -4,7 +4,7 @@ export default function Viewer3D({ videoUrl, loading }) {
   if (loading || !videoUrl) return null;
 
   // Tự động nhận diện URL là video hay ảnh
-  const isVideo = videoUrl.match(/\.(mp4|webm|ogg)$/i);
+  const isVideo = videoUrl.match(/\.(mp4|webm|ogg)(\?|$)/i);
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
