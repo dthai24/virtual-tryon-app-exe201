@@ -1,0 +1,78 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Next.js / frontend build output
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel/
+
+# Backend / Node runtime
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.pid
+*.seed
+
+# Python virtualenvs and caches
+.venv/
+venv/
+env/
+ENV/
+ai-service/.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Local databases and generated data
+*.sqlite
+*.sqlite3
+*.db
+dump.rdb
+
+# Runtime uploads
+# Keep product fixtures/images trackable because seeded products map to them.
+backend/public/uploads/**
+!backend/public/uploads/
+!backend/public/uploads/products/
+!backend/public/uploads/products/**
+
+# Logs
+logs/
+*.log
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Package manager caches
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Test / coverage output
+coverage/
+test-results/
+playwright-report/
