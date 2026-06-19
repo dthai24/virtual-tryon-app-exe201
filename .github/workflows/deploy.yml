@@ -45,6 +45,29 @@ jobs:
             ${{ env.DOCKER_IMAGE }}:frontend-latest
             ${{ env.DOCKER_IMAGE }}:frontend-${{ github.sha }}
 
+      - name: Prepare app directory on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            mkdir -p "${{ secrets.APP_DIR }}"
+            test -f "${{ secrets.APP_DIR }}/.env"
+
+      - name: Copy Docker Compose file to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: docker-compose.yml
+          target: ${{ secrets.APP_DIR }}
+
       - name: Deploy with Docker Compose over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -56,8 +79,6 @@ jobs:
           script: |
             set -e
             cd "${{ secrets.APP_DIR }}"
-            git fetch origin main
-            git reset --hard origin/main
             docker compose --env-file .env pull backend frontend
             docker compose --env-file .env up -d --no-build
             docker image prune -f
