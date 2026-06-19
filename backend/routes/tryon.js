@@ -7,6 +7,7 @@ const Product = require('../models/Product');
 const TryonHistory = require('../models/TryonHistory');
 const CreditTransaction = require('../models/CreditTransaction');
 const { generateCatwalkVideo, generateVirtualTryOn } = require('../services/falTryon');
+const { productImagePublicUrl, publicUploadUrl } = require('../utils/publicUrl');
 
 const router = express.Router();
 const MAX_FACE_IMAGE_SIZE_MB = 15;
@@ -146,7 +147,7 @@ router.post('/generate', uploadUserFace, async (req, res) => {
       description: `Sử dụng 1 credit để thử đồ AI cho sản phẩm: "${product.name}"`,
     });
 
-    const userFacePublicUrl = `http://localhost:5000/public/uploads/faces/${req.file.filename}`;
+    const userFacePublicUrl = publicUploadUrl('faces', req.file.filename);
     const newHistory = await TryonHistory.create({
       user_id: user._id,
       product_id: product._id,
@@ -321,11 +322,7 @@ router.get('/history/:user_id', async (req, res) => {
     const processedHistory = history.map((item) => {
       const itemObj = item.toObject();
       if (itemObj.product_id && itemObj.product_id.garment_image_url) {
-        let imageUrl = itemObj.product_id.garment_image_url;
-        if (imageUrl && (imageUrl.includes(':/') || imageUrl.includes(':\\') || imageUrl.startsWith('/') || imageUrl.match(/^[a-zA-Z]:/))) {
-          const filename = path.basename(imageUrl);
-          itemObj.product_id.garment_image_url = `http://localhost:5000/public/uploads/products/${filename}`;
-        }
+        itemObj.product_id.garment_image_url = productImagePublicUrl(itemObj.product_id.garment_image_url);
       }
       return itemObj;
     });

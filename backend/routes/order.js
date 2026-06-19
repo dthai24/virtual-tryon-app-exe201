@@ -2,6 +2,7 @@ const express = require('express');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
+const { productImagePublicUrl } = require('../utils/publicUrl');
 
 const router = express.Router();
 
@@ -59,11 +60,7 @@ router.get('/buyer/:buyer_id', async (req, res) => {
       const orderObj = order.toObject();
       orderObj.items = orderObj.items.map(item => {
         if (item.product_id && item.product_id.garment_image_url) {
-          let imageUrl = item.product_id.garment_image_url;
-          if (imageUrl && (imageUrl.includes(':/') || imageUrl.includes(':\\') || imageUrl.startsWith('/') || imageUrl.match(/^[a-zA-Z]:/))) {
-            const filename = require('path').basename(imageUrl);
-            item.product_id.garment_image_url = `http://localhost:5000/public/uploads/products/${filename}`;
-          }
+          item.product_id.garment_image_url = productImagePublicUrl(item.product_id.garment_image_url);
         }
         return item;
       });
@@ -92,11 +89,7 @@ router.get('/seller/:shop_id', async (req, res) => {
       const orderObj = order.toObject();
       orderObj.items = orderObj.items.map(item => {
         if (item.product_id && item.product_id.garment_image_url) {
-          let imageUrl = item.product_id.garment_image_url;
-          if (imageUrl && (imageUrl.includes(':/') || imageUrl.includes(':\\') || imageUrl.startsWith('/') || imageUrl.match(/^[a-zA-Z]:/))) {
-            const filename = require('path').basename(imageUrl);
-            item.product_id.garment_image_url = `http://localhost:5000/public/uploads/products/${filename}`;
-          }
+          item.product_id.garment_image_url = productImagePublicUrl(item.product_id.garment_image_url);
         }
         return item;
       });

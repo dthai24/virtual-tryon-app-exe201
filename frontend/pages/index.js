@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
+import { apiUrl } from '../lib/api';
 
 // Nạp động component Viewer3D để tránh lỗi SSR
 const Viewer3D = dynamic(() => import('../components/Viewer3D'), {
@@ -100,7 +101,7 @@ export default function Home() {
   // Lấy danh sách sản phẩm
   const fetchProductsList = () => {
     setLoadingProducts(true);
-    fetch('http://localhost:5000/api/products')
+    fetch(apiUrl('/api/products'))
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const contentType = res.headers.get('content-type');
@@ -123,7 +124,7 @@ export default function Home() {
 
   // Đồng bộ credits từ backend
   const fetchUserCredits = (userId) => {
-    fetch('http://localhost:5000/api/user/test')
+    fetch(apiUrl('/api/user/test'))
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const contentType = res.headers.get('content-type');
@@ -146,7 +147,7 @@ export default function Home() {
 
   // Lấy lịch sử thử đồ
   const fetchBuyerHistory = (userId) => {
-    fetch(`http://localhost:5000/api/tryon/history/${userId}`)
+    fetch(apiUrl(`/api/tryon/history/${userId}`))
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const contentType = res.headers.get('content-type');
@@ -165,7 +166,7 @@ export default function Home() {
 
   // Lấy lịch sử đơn hàng
   const fetchBuyerOrders = (userId) => {
-    fetch(`http://localhost:5000/api/orders/buyer/${userId}`)
+    fetch(apiUrl(`/api/orders/buyer/${userId}`))
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const contentType = res.headers.get('content-type');
@@ -281,7 +282,7 @@ export default function Home() {
         const shopItems = itemsByShop[shopId];
         const totalAmount = shopItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-        const response = await fetch('http://localhost:5000/api/orders/create', {
+        const response = await fetch(apiUrl('/api/orders/create'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -395,7 +396,7 @@ export default function Home() {
       formDataToSend.append('weight', weight);
       formDataToSend.append('gender', gender);
 
-      const response = await fetch('http://localhost:5000/api/tryon/generate', {
+      const response = await fetch(apiUrl('/api/tryon/generate'), {
         method: 'POST',
         body: formDataToSend,
       });
@@ -446,7 +447,7 @@ export default function Home() {
     setAiError(null);
 
     try {
-      const response = await fetch('http://localhost:5000/api/tryon/video', {
+      const response = await fetch(apiUrl('/api/tryon/video'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -482,7 +483,7 @@ export default function Home() {
   const handleRechargeCredits = async () => {
     if (!user) return;
     try {
-      const response = await fetch('http://localhost:5000/api/tryon/recharge', {
+      const response = await fetch(apiUrl('/api/tryon/recharge'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user._id })

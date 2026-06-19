@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { apiUrl } from '../../lib/api';
 
 export default function ShopAddProduct() {
   const router = useRouter();
@@ -95,7 +96,7 @@ export default function ShopAddProduct() {
       payload.append('category', formData.category);
       payload.append('garment_image', garmentFile);
 
-      const response = await fetch('http://localhost:5000/api/products/add', {
+      const response = await fetch(apiUrl('/api/products/add'), {
         method: 'POST',
         body: payload,
       });

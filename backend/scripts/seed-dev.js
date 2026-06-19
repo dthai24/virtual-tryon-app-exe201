@@ -8,6 +8,7 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const TryonHistory = require('../models/TryonHistory');
 const CreditTransaction = require('../models/CreditTransaction');
+const { publicUploadUrl } = require('../utils/publicUrl');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/virtual_tryon_db';
 const PASSWORD = 'defaultpassword123';
@@ -66,9 +67,9 @@ function findFaceUrl(index = 0) {
     : [];
   const selected = faceFiles[index % Math.max(faceFiles.length, 1)];
   if (selected) {
-    return `http://localhost:5000/public/uploads/faces/${selected}`;
+    return publicUploadUrl('faces', selected);
   }
-  return 'http://localhost:5000/public/uploads/1779888429544.jpg';
+  return publicUploadUrl('1779888429544.jpg');
 }
 
 async function upsertUser(account) {
@@ -257,7 +258,7 @@ async function main() {
       user_id: users['buyer1@smartfit.vn']._id,
       product_id: products[0]._id,
       user_face_url: findFaceUrl(0),
-      result_image_url: 'http://localhost:5000/public/uploads/ai_output_1779888924603.png',
+      result_image_url: publicUploadUrl('ai_output_1779888924603.png'),
       result_video_url: 'https://assets.mixkit.co/videos/preview/mixkit-fashion-woman-with-silver-dress-walking-in-studio-41480-large.mp4',
       status: 'video_ready',
       video_status: 'ready',
@@ -267,7 +268,7 @@ async function main() {
       user_id: users['buyer1@smartfit.vn']._id,
       product_id: products[5]._id,
       user_face_url: findFaceUrl(1),
-      result_image_url: 'http://localhost:5000/public/uploads/ai_output_1779888924603.png',
+      result_image_url: publicUploadUrl('ai_output_1779888924603.png'),
       result_video_url: '',
       status: 'image_ready',
       video_status: 'pending',
@@ -277,7 +278,7 @@ async function main() {
       user_id: users['buyer2@smartfit.vn']._id,
       product_id: products[1]._id,
       user_face_url: findFaceUrl(2),
-      result_image_url: 'http://localhost:5000/public/uploads/ai_output_1779888924603.png',
+      result_image_url: publicUploadUrl('ai_output_1779888924603.png'),
       result_video_url: '',
       status: 'processing_video',
       video_status: 'processing',

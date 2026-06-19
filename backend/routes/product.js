@@ -5,6 +5,7 @@ const fs = require('fs');
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
 const User = require('../models/User');
+const { productImagePublicUrl, publicUploadUrl } = require('../utils/publicUrl');
 
 const router = express.Router();
 
@@ -55,12 +56,7 @@ router.get('/', async (req, res) => {
 
     // Chuyển đổi garment_image_url thành public HTTP url nếu là path cục bộ
     const processedProducts = products.map((prod) => {
-      let imageUrl = prod.garment_image_url;
-      if (imageUrl && (imageUrl.includes(':/') || imageUrl.includes(':\\') || imageUrl.startsWith('/') || imageUrl.match(/^[a-zA-Z]:/))) {
-        // Lấy tên file
-        const filename = path.basename(imageUrl);
-        imageUrl = `http://localhost:5000/public/uploads/products/${filename}`;
-      }
+      const imageUrl = productImagePublicUrl(prod.garment_image_url);
       return {
         ...prod.toObject(),
         garment_image_public_url: imageUrl,
@@ -131,7 +127,7 @@ router.post('/add', upload.single('garment_image'), async (req, res) => {
 
     // 2. Tạo đường dẫn file ảnh
     const absoluteImagePath = path.resolve(req.file.path).replace(/\\/g, '/');
-    const publicUrl = `http://localhost:5000/public/uploads/products/${req.file.filename}`;
+    const publicUrl = publicUploadUrl('products', req.file.filename);
 
     // 3. Lưu vào MongoDB Product
     const newProduct = await Product.create({

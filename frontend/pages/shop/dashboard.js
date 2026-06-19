@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { apiUrl } from '../../lib/api';
 
 export default function ShopDashboard() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function ShopDashboard() {
     if (!seller || !seller.shop) return;
 
     // 1. Tải danh sách đơn hàng của shop
-    fetch(`http://localhost:5000/api/orders/seller/${seller.shop.id}`)
+    fetch(apiUrl(`/api/orders/seller/${seller.shop.id}`))
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -50,7 +51,7 @@ export default function ShopDashboard() {
       });
 
     // 2. Tải danh sách sản phẩm và lọc theo shop
-    fetch('http://localhost:5000/api/products')
+    fetch(apiUrl('/api/products'))
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -84,7 +85,7 @@ export default function ShopDashboard() {
   // Cập nhật trạng thái đơn hàng
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+      const response = await fetch(apiUrl(`/api/orders/${orderId}/status`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
