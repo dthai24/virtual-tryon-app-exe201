@@ -52,11 +52,13 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
           script_stop: true
           script: |
             set -e
-            mkdir -p "${{ secrets.APP_DIR }}"
-            test -f "${{ secrets.APP_DIR }}/.env"
+            sudo mkdir -p "${{ secrets.APP_DIR }}"
+            sudo test -f "${{ secrets.APP_DIR }}/.env"
+            mkdir -p /tmp/smart-fit-deploy
 
       - name: Copy Docker Compose file to VPS
         uses: appleboy/scp-action@v0.1.7
@@ -65,8 +67,9 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
           source: docker-compose.yml
-          target: ${{ secrets.APP_DIR }}
+          target: /tmp/smart-fit-deploy
 
       - name: Deploy with Docker Compose over SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -75,10 +78,12 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
           script_stop: true
           script: |
             set -e
+            sudo cp /tmp/smart-fit-deploy/docker-compose.yml "${{ secrets.APP_DIR }}/docker-compose.yml"
             cd "${{ secrets.APP_DIR }}"
-            docker compose --env-file .env pull backend frontend
-            docker compose --env-file .env up -d --no-build
-            docker image prune -f
+            sudo docker compose --env-file .env pull backend frontend
+            sudo docker compose --env-file .env up -d --no-build
+            sudo docker image prune -f
