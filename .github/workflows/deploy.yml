@@ -1,86 +1,89 @@
-name: 🚀 Auto Deploy to smart-fit.shop
+name: Deploy to VPS
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+env:
+  DOCKER_IMAGE: kienkieuhihi/smart-fit
 
 jobs:
-  # ============================================================
-  # JOB 1: Build & Push Docker image Backend lên Docker Hub
-  # ============================================================
-  build-backend:
-    name: 🔧 Build Backend Image
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Login vào Docker Hub
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & Push Backend image
-        uses: docker/build-push-action@v5
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
         with:
           context: ./backend
-          file: ./backend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/smart-fit:backend-latest
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:backend-latest
+            ${{ env.DOCKER_IMAGE }}:backend-${{ github.sha }}
 
-  # ============================================================
-  # JOB 2: Build & Push Docker image Frontend lên Docker Hub
-  # ============================================================
-  build-frontend:
-    name: 🎨 Build Frontend Image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Login vào Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build & Push Frontend image
-        uses: docker/build-push-action@v5
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
         with:
           context: ./frontend
-          file: ./frontend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/smart-fit:frontend-latest
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:frontend-latest
+            ${{ env.DOCKER_IMAGE }}:frontend-${{ github.sha }}
 
-  # ============================================================
-  # JOB 3: SSH vào server, pull image mới và restart containers
-  # ============================================================
-  deploy:
-    name: 🌐 Deploy lên Server
-    runs-on: ubuntu-latest
-    needs: [build-backend, build-frontend]
-    steps:
-      - name: SSH vào server và deploy
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Prepare app directory on VPS
+        uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          script_stop: true
           script: |
-            echo "📥 Pulling images mới từ Docker Hub..."
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/smart-fit:backend-latest
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/smart-fit:frontend-latest
+            set -e
+            sudo mkdir -p "${{ secrets.APP_DIR }}"
+            sudo test -f "${{ secrets.APP_DIR }}/.env"
+            mkdir -p /tmp/smart-fit-deploy
 
-            echo "🔄 Restart containers với image mới..."
-            cd ${{ secrets.DEPLOY_DIR }}
-            docker compose up -d --no-build backend frontend
+      - name: Copy Docker Compose file to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          source: docker-compose.yml
+          target: /tmp/smart-fit-deploy
 
-            echo "🧹 Dọn dẹp image cũ..."
-            docker image prune -f
-
-            echo "✅ Deploy hoàn tất! smart-fit.shop đã cập nhật."
+      - name: Deploy with Docker Compose over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          script_stop: true
+          script: |
+            set -e
+            sudo cp /tmp/smart-fit-deploy/docker-compose.yml "${{ secrets.APP_DIR }}/docker-compose.yml"
+            cd "${{ secrets.APP_DIR }}"
+            sudo docker compose --env-file .env pull backend frontend
+            sudo docker compose --env-file .env up -d --no-build
+            sudo docker image prune -f
