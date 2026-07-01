@@ -171,4 +171,67 @@ router.post('/add', upload.single('garment_image'), async (req, res) => {
   }
 });
 
+// ============================================================
+// API: PUT /api/products/:id — Cập nhật thông tin sản phẩm
+// ============================================================
+router.put('/:id', upload.single('garment_image'), async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm!' });
+    }
+
+    const { name, price, description, category, stock } = req.body;
+
+    if (name) product.name = name.trim();
+    if (price) product.price = Number(price);
+    if (description !== undefined) product.description = description;
+    if (category) product.category = category;
+    if (stock !== undefined) product.stock = Number(stock);
+
+    // Nếu có ảnh mới được upload
+    if (req.file) {
+      const absoluteImagePath = path.resolve(req.file.path).replace(/\\/g, '/');
+      product.garment_image_url = absoluteImagePath;
+    }
+
+    await product.save();
+
+    const imageUrl = productImagePublicUrl(product.garment_image_url);
+    return res.status(200).json({
+      success: true,
+      message: `Cập nhật sản phẩm "${product.name}" thành công!`,
+      data: { ...product.toObject(), garment_image_public_url: imageUrl },
+    });
+  } catch (error) {
+    console.error('❌ Lỗi cập nhật sản phẩm:', error.message);
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    return res.status(500).json({ success: false, message: 'Lỗi server: ' + error.message });
+  }
+});
+
+// ============================================================
+// API: DELETE /api/products/:id — Xóa sản phẩm (soft delete)
+// ============================================================
+router.delete('/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm!' });
+    }
+
+    // Soft delete: đổi trạng thái thành unavailable thay vì xóa hẳn
+    product.status = 'unavailable';
+    await product.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã xóa sản phẩm "${product.name}" khỏi cửa hàng!`,
+    });
+  } catch (error) {
+    console.error('❌ Lỗi xóa sản phẩm:', error.message);
+    return res.status(500).json({ success: false, message: 'Lỗi server: ' + error.message });
+  }
+});
+
 module.exports = router;

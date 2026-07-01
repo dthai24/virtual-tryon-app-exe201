@@ -12,6 +12,12 @@ export default function ShopDashboard() {
   
   // Trạng thái load dữ liệu
   const [loadingOrders, setLoadingOrders] = useState(true);
+
+  // State modal sửa sản phẩm
+  const [editingProduct, setEditingProduct] = useState(null); // product đang sửa
+  const [editForm, setEditForm] = useState({ name: '', price: '', description: '', category: '', stock: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [loadingProducts, setLoadingProducts] = useState(true);
   
   // State phục vụ thống kê ảo + thật
@@ -80,6 +86,75 @@ export default function ShopDashboard() {
   const handleLogout = () => {
     localStorage.removeItem('user');
     router.push('/login');
+  };
+
+  // Mở modal sửa, điền sẵn thông tin sản phẩm
+  const openEditModal = (product) => {
+    setEditingProduct(product);
+    setEditForm({
+      name: product.name,
+      price: product.price,
+      description: product.description || '',
+      category: product.category,
+      stock: product.stock,
+    });
+  };
+
+  // Lưu chỉnh sửa sản phẩm
+  const handleSaveEdit = async () => {
+    if (!editForm.name || !editForm.price) {
+      alert('Vui lòng nhập đủ tên và giá sản phẩm!');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', editForm.name);
+      formData.append('price', editForm.price);
+      formData.append('description', editForm.description);
+      formData.append('category', editForm.category);
+      formData.append('stock', editForm.stock);
+
+      const res = await fetch(apiUrl(`/api/products/${editingProduct._id}`), {
+        method: 'PUT',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProducts(prev => prev.map(p => p._id === editingProduct._id
+          ? { ...p, ...editForm, price: Number(editForm.price), stock: Number(editForm.stock) }
+          : p
+        ));
+        setEditingProduct(null);
+        alert('Cập nhật sản phẩm thành công!');
+      } else {
+        alert(data.message || 'Không thể cập nhật sản phẩm!');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối: ' + err.message);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // Xóa sản phẩm
+  const handleDeleteProduct = async (product) => {
+    if (!confirm(`Bạn có chắc muốn xóa sản phẩm "${product.name}"?\nSản phẩm sẽ bị ẩn khỏi cửa hàng.`)) return;
+    setDeletingId(product._id);
+    try {
+      const res = await fetch(apiUrl(`/api/products/${product._id}`), { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProducts(prev => prev.filter(p => p._id !== product._id));
+        alert('Đã xóa sản phẩm thành công!');
+      } else {
+        alert(data.message || 'Không thể xóa sản phẩm!');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối: ' + err.message);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   // Cập nhật trạng thái đơn hàng
@@ -422,6 +497,7 @@ export default function ShopDashboard() {
                           <th className="py-4 px-6 text-right">Giá bán</th>
                           <th className="py-4 px-6 text-center">Tồn kho</th>
                           <th className="py-4 px-6 text-center">Trạng thái</th>
+                          <th className="py-4 px-6 text-center">Hành động</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -448,6 +524,23 @@ export default function ShopDashboard() {
                               <span className="bg-green-50 text-green-600 text-[10px] font-bold px-2 py-0.8 rounded">
                                 Đang bán
                               </span>
+                            </td>
+                            <td className="py-4 px-6 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => openEditModal(p)}
+                                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                                >
+                                  ✏️ Sửa
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteProduct(p)}
+                                  disabled={deletingId === p._id}
+                                  className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {deletingId === p._id ? '⏳' : '🗑️'} Xóa
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -576,6 +669,111 @@ export default function ShopDashboard() {
         </main>
 
       </div>
+
+      {/* ===== MODAL SỬA SẢN PHẨM ===== */}
+      {editingProduct && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-[520px] shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div>
+                <h3 className="text-sm font-bold text-gray-800">✏️ Chỉnh sửa sản phẩm</h3>
+                <p className="text-[10px] text-gray-400 mt-0.5">{editingProduct.name}</p>
+              </div>
+              <button
+                onClick={() => setEditingProduct(null)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all cursor-pointer text-lg"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="p-6 space-y-4">
+              {/* Tên sản phẩm */}
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Tên sản phẩm *</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-[#ee4d2d] focus:ring-1 focus:ring-[#ee4d2d]/20 transition-all"
+                  placeholder="Nhập tên sản phẩm..."
+                />
+              </div>
+
+              {/* Giá & Tồn kho */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Giá bán (₫) *</label>
+                  <input
+                    type="number"
+                    value={editForm.price}
+                    onChange={e => setEditForm(prev => ({ ...prev, price: e.target.value }))}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-[#ee4d2d] focus:ring-1 focus:ring-[#ee4d2d]/20 transition-all"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Tồn kho (cái)</label>
+                  <input
+                    type="number"
+                    value={editForm.stock}
+                    onChange={e => setEditForm(prev => ({ ...prev, stock: e.target.value }))}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-[#ee4d2d] focus:ring-1 focus:ring-[#ee4d2d]/20 transition-all"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              {/* Phân loại */}
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Phân loại</label>
+                <select
+                  value={editForm.category}
+                  onChange={e => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-[#ee4d2d] transition-all cursor-pointer"
+                >
+                  <option value="female">👩 Nữ</option>
+                  <option value="male">👨 Nam</option>
+                  <option value="unisex">🧑 Unisex</option>
+                </select>
+              </div>
+
+              {/* Mô tả */}
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Mô tả sản phẩm</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                  rows={3}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-[#ee4d2d] focus:ring-1 focus:ring-[#ee4d2d]/20 transition-all resize-none"
+                  placeholder="Mô tả ngắn về sản phẩm..."
+                />
+              </div>
+            </div>
+
+            {/* Footer actions */}
+            <div className="flex items-center gap-3 p-6 pt-0">
+              <button
+                onClick={() => setEditingProduct(null)}
+                className="flex-1 py-2.5 border border-gray-200 text-gray-500 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={savingEdit}
+                className="flex-1 py-2.5 bg-[#ee4d2d] hover:bg-[#d73211] text-white rounded-xl text-xs font-bold shadow-md shadow-[#ee4d2d]/25 hover:shadow-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {savingEdit ? '⏳ Đang lưu...' : '💾 Lưu thay đổi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
