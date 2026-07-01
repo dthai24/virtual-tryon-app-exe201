@@ -220,8 +220,8 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm!' });
     }
 
-    // Soft delete: đổi trạng thái thành unavailable thay vì xóa hẳn
-    product.status = 'unavailable';
+    // Soft delete: đổi trạng thái thành hidden thay vì xóa hẳn
+    product.status = 'hidden';
     await product.save();
 
     return res.status(200).json({
