@@ -7,14 +7,13 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview'); // overview | users | products | transactions | tryons
+  const [activeTab, setActiveTab] = useState('overview'); // overview | users | products | transactions
 
   // Data states
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [products, setProducts] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [tryons, setTryons] = useState([]);
 
   // Modal States
   const [showCreditModal, setShowCreditModal] = useState(false);
@@ -73,12 +72,7 @@ export default function AdminDashboard() {
         setTransactions(transData.transactions);
       }
 
-      // 5. Fetch Tryons
-      const tryonsRes = await fetch(apiUrl(`/api/admin/tryons${authQuery}`));
-      const tryonsData = await tryonsRes.json();
-      if (tryonsRes.ok && tryonsData.success) {
-        setTryons(tryonsData.tryons);
-      }
+
 
     } catch (err) {
       console.error('Error fetching admin data:', err);
@@ -177,8 +171,7 @@ export default function AdminDashboard() {
               { id: 'overview', label: '📊 Tổng quan', desc: 'Thống kê & đo lường' },
               { id: 'users', label: '👥 Người dùng', desc: 'Xem danh sách & sửa xu' },
               { id: 'products', label: '🛍️ Sản phẩm', desc: 'Sản phẩm toàn hệ thống' },
-              { id: 'transactions', label: '🪙 Giao dịch xu', desc: 'Lịch sử nạp & tiêu xu' },
-              { id: 'tryons', label: '🔮 Thử đồ AI', desc: 'Lịch sử ảnh/video AI' }
+              { id: 'transactions', label: '🪙 Giao dịch xu', desc: 'Lịch sử nạp & tiêu xu' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -215,11 +208,10 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-black text-gray-800" style={{ fontFamily: "'Montserrat', sans-serif" }}>📊 Bảng thống kê hệ thống</h2>
                 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[
                     { label: 'Tổng số tài khoản', val: stats?.totalUsers || 0, color: 'from-[#ff4081] to-[#ff80ab]' },
                     { label: 'Sản phẩm bày bán', val: stats?.totalProducts || 0, color: 'from-blue-500 to-indigo-500' },
-                    { label: 'Số lượt thử đồ AI', val: stats?.totalTryons || 0, color: 'from-purple-500 to-pink-500' },
                     { label: 'Xu thực tế đã nạp', val: `🪙 ${stats?.totalCoinsPurchased || 0}`, color: 'from-yellow-500 to-amber-500' }
                   ].map((card, idx) => (
                     <div key={idx} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -433,83 +425,6 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* TAB 5: TRYONS */}
-            {activeTab === 'tryons' && (
-              <div className="space-y-4 animate-in fade-in duration-200">
-                <h2 className="text-lg font-black text-gray-800" style={{ fontFamily: "'Montserrat', sans-serif" }}>🔮 Lịch sử chạy AI thử đồ hệ thống</h2>
-                
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-gray-50 text-[10px] uppercase font-bold text-gray-400 tracking-wider border-b border-gray-100">
-                          <th className="py-4 px-6">Khách hàng</th>
-                          <th className="py-4 px-6">Ảnh mặt</th>
-                          <th className="py-4 px-6">Ảnh quần áo</th>
-                          <th className="py-4 px-6">Loại AI</th>
-                          <th className="py-4 px-6">Thời gian</th>
-                          <th className="py-4 px-6 text-center">Kết quả</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 text-xs text-gray-600">
-                        {tryons.length === 0 ? (
-                          <tr>
-                            <td colSpan="6" className="py-8 text-center text-gray-400">Chưa có lượt chạy AI nào.</td>
-                          </tr>
-                        ) : (
-                          tryons.map((ty) => (
-                            <tr key={ty._id} className="hover:bg-gray-50/50 transition-colors">
-                              <td className="py-4 px-6">
-                                <p className="font-semibold text-gray-800">{ty.user_id?.username || 'Khách vãng lai'}</p>
-                                <p className="text-[10px] text-gray-400 font-medium">{ty.user_id?.email}</p>
-                              </td>
-                              <td className="py-3 px-6">
-                                <img
-                                  src={ty.face_img ? (ty.face_img.startsWith('http') ? ty.face_img : apiUrl(`/public/uploads/${ty.face_img.split('/').pop()}`)) : 'https://placehold.co/100x100?text=Face'}
-                                  className="w-10 h-10 object-cover rounded-lg border border-gray-100"
-                                  alt=""
-                                />
-                              </td>
-                              <td className="py-3 px-6">
-                                <img
-                                  src={ty.garment_img ? (ty.garment_img.startsWith('http') ? ty.garment_img : apiUrl(`/public/uploads/${ty.garment_img.split('/').pop()}`)) : 'https://placehold.co/100x100?text=Garment'}
-                                  className="w-10 h-10 object-cover rounded-lg border border-gray-100"
-                                  alt=""
-                                />
-                              </td>
-                              <td className="py-3 px-6">
-                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                                  ty.type === 'video' ? 'bg-purple-50 text-purple-600' : 'bg-pink-50 text-pink-600'
-                                }`}>
-                                  {ty.type === 'video' ? '🎬 Video' : '🖼️ Ảnh'}
-                                </span>
-                              </td>
-                              <td className="py-3 px-6 font-semibold text-gray-400">
-                                {new Date(ty.createdAt).toLocaleString('vi-VN')}
-                              </td>
-                              <td className="py-3 px-6 text-center">
-                                {ty.result_url ? (
-                                  <a
-                                    href={ty.result_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="px-2.5 py-1 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition-colors font-bold text-[10px]"
-                                  >
-                                    Xem File
-                                  </a>
-                                ) : (
-                                  <span className="text-yellow-600 font-bold text-[10px]">⏳ Đang xử lý</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
 
           </main>
         </div>
