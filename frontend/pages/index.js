@@ -77,9 +77,16 @@ export default function Home() {
   const [aiHistoryId, setAiHistoryId] = useState(null);
   const [aiError, setAiError] = useState(null);
 
-  // State hỗ trợ tìm kiếm và lọc sản phẩm theo phong cách Shopee
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
+
+  // Lọc sản phẩm theo tìm kiếm và danh mục
+  const filteredProducts = (products || []).filter(product => {
+    if (!product || !product.name) return false;
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategoryFilter === 'all' || product.category === selectedCategoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   // ============================================================
   // LOAD DỮ LIỆU ĐẦU VÀO
