@@ -221,4 +221,22 @@ router.post('/shop/upgrade', async (req, res) => {
   }
 });
 
+// ============================================================
+// API: GET /api/auth/shop/:id — Lấy chi tiết Shop
+// ============================================================
+router.get('/shop/:id', async (req, res) => {
+  try {
+    const shop = await Shop.findById(req.params.id);
+    if (!shop) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng!' });
+    }
+    return res.status(200).json({
+      success: true,
+      data: shop
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;

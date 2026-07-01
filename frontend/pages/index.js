@@ -970,7 +970,16 @@ export default function Home() {
                       </div>
 
                       {/* Cửa hàng thật */}
-                      <p className="text-[9px] text-gray-400 font-medium text-right mt-1.5 pt-1.5 border-t border-gray-50 truncate" title={product.shop_id?.name || 'SmartFit Store'}>
+                      <p
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (product.shop_id?._id) {
+                            router.push(`/shop/${product.shop_id._id}`);
+                          }
+                        }}
+                        className="text-[9px] text-gray-400 font-medium text-right mt-1.5 pt-1.5 border-t border-gray-50 truncate hover:text-[#ff4081] transition-all cursor-pointer"
+                        title={product.shop_id?.name || 'SmartFit Store'}
+                      >
                         🏪 {product.shop_id?.name || 'SmartFit Store'}
                       </p>
                     </div>
@@ -1044,7 +1053,14 @@ export default function Home() {
                   )}
 
                   {/* Thông tin chữ */}
-                  <span className="text-[9px] font-bold text-[#ff4081] bg-[#ff4081]/10 px-2 py-0.5 rounded-md">
+                  <span
+                    onClick={() => {
+                      if (selectedProduct.shop_id?._id) {
+                        router.push(`/shop/${selectedProduct.shop_id._id}`);
+                      }
+                    }}
+                    className="text-[9px] font-bold text-[#ff4081] bg-[#ff4081]/10 px-2 py-0.5 rounded-md cursor-pointer hover:bg-[#ff4081]/25 transition-all"
+                  >
                     🏪 {selectedProduct.shop_id?.name || 'SmartFit Store'}
                   </span>
                   <h3 className="text-base font-bold text-gray-800 mt-2 line-clamp-2">{selectedProduct.name}</h3>
