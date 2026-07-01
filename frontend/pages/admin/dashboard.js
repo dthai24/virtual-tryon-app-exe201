@@ -352,7 +352,7 @@ export default function AdminDashboard() {
                             <tr key={p._id} className="hover:bg-gray-50/50 transition-colors">
                               <td className="py-3 px-6">
                                 <img
-                                  src={p.image.startsWith('http') ? p.image : apiUrl(`/public/uploads/${p.image.split('/').pop()}`)}
+                                  src={p.image ? (p.image.startsWith('http') ? p.image : apiUrl(`/public/uploads/${p.image.split('/').pop()}`)) : 'https://placehold.co/100x100?text=No+Image'}
                                   className="w-10 h-10 object-cover rounded-lg border border-gray-100 shadow-sm"
                                   alt=""
                                 />
@@ -465,14 +465,14 @@ export default function AdminDashboard() {
                               </td>
                               <td className="py-3 px-6">
                                 <img
-                                  src={ty.face_img.startsWith('http') ? ty.face_img : apiUrl(`/public/uploads/${ty.face_img.split('/').pop()}`)}
+                                  src={ty.face_img ? (ty.face_img.startsWith('http') ? ty.face_img : apiUrl(`/public/uploads/${ty.face_img.split('/').pop()}`)) : 'https://placehold.co/100x100?text=Face'}
                                   className="w-10 h-10 object-cover rounded-lg border border-gray-100"
                                   alt=""
                                 />
                               </td>
                               <td className="py-3 px-6">
                                 <img
-                                  src={ty.garment_img.startsWith('http') ? ty.garment_img : apiUrl(`/public/uploads/${ty.garment_img.split('/').pop()}`)}
+                                  src={ty.garment_img ? (ty.garment_img.startsWith('http') ? ty.garment_img : apiUrl(`/public/uploads/${ty.garment_img.split('/').pop()}`)) : 'https://placehold.co/100x100?text=Garment'}
                                   className="w-10 h-10 object-cover rounded-lg border border-gray-100"
                                   alt=""
                                 />
