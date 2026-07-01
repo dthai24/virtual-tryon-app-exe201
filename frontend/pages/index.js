@@ -800,37 +800,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ===== QUICK ACCESS CIRCULAR SHORTCUTS ===== */}
-        <section className="max-w-[1200px] mx-auto px-4 mt-8">
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 grid grid-cols-4 md:grid-cols-8 gap-4 text-center">
-            {[
-              { label: 'Khung Giờ Sale', icon: '⏰', onClick: () => alert('Sự kiện Flash Sale đang diễn ra ở phía dưới!') },
-              { label: 'Mã Giảm Giá', icon: '🎟️', onClick: () => alert('Hệ thống mã giảm giá đang được bảo trì!') },
-              { label: 'Gì Cũng Rẻ', icon: '🏷️', onClick: () => alert('Các sản phẩm đồng giá đang bán ở Catalog!') },
-              { label: 'Shopee Mall', icon: '💎', onClick: () => alert('Đang xem các thương hiệu Mall chính hãng!') },
-              { label: 'Thời Trang Nam', icon: '👕', onClick: () => setSelectedCategoryFilter('male') },
-              { label: 'Thời Trang Nữ', icon: '👗', onClick: () => setSelectedCategoryFilter('female') },
-              { label: 'Thử Đồ AI ⚡', icon: '🔮', onClick: () => {
-                const catalog = document.getElementById('catalog');
-                catalog?.scrollIntoView({ behavior: 'smooth' });
-              }},
-              { label: 'Nạp Xu 🪙', icon: '🪙', onClick: handleOpenRecharge }
-            ].map((shortcut, idx) => (
-              <div
-                key={idx}
-                onClick={shortcut.onClick}
-                className="flex flex-col items-center gap-2 cursor-pointer group hover:-translate-y-1 transition-all duration-200"
-              >
-                <div className="w-12 h-12 rounded-full bg-pink-50 group-hover:bg-[#ff4081]/10 flex items-center justify-center text-2xl shadow-inner transition-colors">
-                  {shortcut.icon}
-                </div>
-                <span className="text-[10px] font-bold text-gray-600 group-hover:text-[#ff4081] leading-tight">
-                  {shortcut.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
 
         {/* ===== SHOPEE FLASH SALE SECTION ===== */}
         <section className="max-w-[1200px] mx-auto px-4 mt-8">
