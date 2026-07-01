@@ -48,6 +48,15 @@ const productSchema = new mongoose.Schema(
       },
       default: 'available',
     },
+    is_flash_sale: {
+      type: Boolean,
+      default: false,
+    },
+    flash_sale_price: {
+      type: Number,
+      default: 0,
+      min: [0, 'Giá Flash Sale không được âm'],
+    },
   },
   {
     timestamps: true,

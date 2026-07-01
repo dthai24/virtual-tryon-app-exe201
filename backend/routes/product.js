@@ -233,6 +233,13 @@ router.put('/:id', upload.single('garment_image'), async (req, res) => {
     if (description !== undefined) product.description = description;
     if (category) product.category = category;
     if (stock !== undefined) product.stock = Number(stock);
+    
+    if (req.body.is_flash_sale !== undefined) {
+      product.is_flash_sale = req.body.is_flash_sale === 'true' || req.body.is_flash_sale === true;
+    }
+    if (req.body.flash_sale_price !== undefined) {
+      product.flash_sale_price = Number(req.body.flash_sale_price);
+    }
 
     // Nếu có ảnh mới được upload
     if (req.file) {

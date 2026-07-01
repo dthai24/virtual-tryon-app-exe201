@@ -827,41 +827,53 @@ export default function Home() {
 
             {/* Flash Sale Horizontal Scroll */}
             <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-              {products.slice(0, 4).map((p) => {
-                const soldCount = p.sales || 0;
-                const totalStock = (p.sales || 0) + (p.stock || 0) || 1;
-                const percent = Math.min(100, Math.round((soldCount / totalStock) * 100));
+              {(() => {
+                const flashSaleList = (products || []).filter(p => p.is_flash_sale);
+                const displayFlashSale = flashSaleList.length > 0 ? flashSaleList : (products || []).slice(0, 4);
                 
-                return (
-                  <div
-                    key={p._id}
-                    onClick={() => handleOpenDetail(p)}
-                    className="border border-gray-100 hover:border-[#ff4081] rounded-lg p-3 cursor-pointer flex flex-col justify-between hover:shadow-md transition-all group"
-                  >
-                    <div className="relative pt-[100%] bg-gray-50 rounded overflow-hidden">
-                      <img
-                        src={p.garment_image_public_url}
-                        className="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform"
-                        alt=""
-                      />
-                    </div>
+                return displayFlashSale.map((p) => {
+                  const soldCount = p.sales || 0;
+                  const totalStock = (p.sales || 0) + (p.stock || 0) || 1;
+                  const percent = Math.min(100, Math.round((soldCount / totalStock) * 100));
+                  const finalPrice = (p.is_flash_sale && p.flash_sale_price > 0) ? p.flash_sale_price : p.price;
+                  const discountPercent = Math.round(((p.price - finalPrice) / p.price) * 100);
+                  
+                  return (
+                    <div
+                      key={p._id}
+                      onClick={() => handleOpenDetail(p)}
+                      className="border border-gray-100 hover:border-[#ff4081] rounded-lg p-3 cursor-pointer flex flex-col justify-between hover:shadow-md transition-all group relative"
+                    >
+                      <div className="relative pt-[100%] bg-gray-50 rounded overflow-hidden">
+                        <img
+                          src={p.garment_image_public_url}
+                          className="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform"
+                          alt=""
+                        />
+                        {discountPercent > 0 && (
+                          <div className="absolute top-0 right-0 bg-[#fff0f5] text-[#ff4081] text-[9px] font-bold px-1.5 py-0.5 rounded-bl">
+                            Giảm {discountPercent}%
+                          </div>
+                        )}
+                      </div>
 
-                    <div className="mt-3 space-y-2">
-                      <p className="text-[#ff4081] font-black text-sm text-center">
-                        ₫{p.price.toLocaleString('vi-VN')}
-                      </p>
-                      
-                      {/* Progress Bar bán chạy thực tế */}
-                      <div className="w-full bg-pink-100 rounded-full h-4 relative flex items-center justify-center overflow-hidden">
-                        <div className="bg-gradient-to-r from-[#ff4081] to-[#ff80ab] h-full rounded-full absolute left-0 top-0" style={{ width: `${percent}%` }}></div>
-                        <span className="text-[9px] text-white font-extrabold z-10 uppercase tracking-wider">
-                          {soldCount > 0 ? `ĐÃ BÁN ${soldCount}` : 'SẴN SÀNG'}
-                        </span>
+                      <div className="mt-3 space-y-2">
+                        <p className="text-[#ff4081] font-black text-sm text-center">
+                          ₫{finalPrice.toLocaleString('vi-VN')}
+                        </p>
+                        
+                        {/* Progress Bar bán chạy thực tế */}
+                        <div className="w-full bg-pink-100 rounded-full h-4 relative flex items-center justify-center overflow-hidden">
+                          <div className="bg-gradient-to-r from-[#ff4081] to-[#ff80ab] h-full rounded-full absolute left-0 top-0" style={{ width: `${percent}%` }}></div>
+                          <span className="text-[9px] text-white font-extrabold z-10 uppercase tracking-wider">
+                            {soldCount > 0 ? `ĐÃ BÁN ${soldCount}` : 'SẴN SÀNG'}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
 
           </div>

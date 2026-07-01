@@ -29,6 +29,11 @@ export default function ShopDashboard() {
   const [selectedPrice, setSelectedPrice] = useState(0);
   const [upgrading, setUpgrading] = useState(false);
 
+  // State quản lý Flash Sale cửa hàng
+  const [fsProdId, setFsProdId] = useState('');
+  const [fsPrice, setFsPrice] = useState('');
+  const [submittingFS, setSubmittingFS] = useState(false);
+
   // Bảo vệ route - Chỉ cho phép Seller truy cập
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -130,6 +135,81 @@ export default function ShopDashboard() {
       alert('Không thể kết nối đến máy chủ: ' + error.message);
     } finally {
       setUpgrading(false);
+    }
+  };
+
+  const handleRegisterFlashSale = async (e) => {
+    if (e) e.preventDefault();
+    if (!fsProdId) {
+      alert('Vui lòng chọn sản phẩm đăng ký Flash Sale!');
+      return;
+    }
+    if (!fsPrice || Number(fsPrice) <= 0) {
+      alert('Vui lòng nhập giá Flash Sale hợp lệ (lớn hơn 0)!');
+      return;
+    }
+    
+    const prod = products.find(p => p._id === fsProdId);
+    if (prod && Number(fsPrice) >= prod.price) {
+      alert('Giá Flash Sale phải nhỏ hơn giá gốc của sản phẩm!');
+      return;
+    }
+
+    setSubmittingFS(true);
+    try {
+      const response = await fetch(apiUrl(`/api/products/${fsProdId}`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          is_flash_sale: true,
+          flash_sale_price: Number(fsPrice)
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        alert('Đăng ký chạy sự kiện Flash Sale thành công!');
+        
+        // Cập nhật lại danh sách sản phẩm cục bộ
+        setProducts(prev => prev.map(p => p._id === fsProdId ? { ...p, is_flash_sale: true, flash_sale_price: Number(fsPrice) } : p));
+        setFsProdId('');
+        setFsPrice('');
+      } else {
+        alert(data.message || 'Lỗi khi đăng ký Flash Sale!');
+      }
+    } catch (err) {
+      alert('Không thể kết nối đến máy chủ: ' + err.message);
+    } finally {
+      setSubmittingFS(false);
+    }
+  };
+
+  const handleCancelFlashSale = async () => {
+    if (!fsProdId) return;
+    setSubmittingFS(true);
+    try {
+      const response = await fetch(apiUrl(`/api/products/${fsProdId}`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          is_flash_sale: false,
+          flash_sale_price: 0
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        alert('Đã tắt sự kiện Flash Sale cho sản phẩm này!');
+        
+        // Cập nhật lại danh sách sản phẩm cục bộ
+        setProducts(prev => prev.map(p => p._id === fsProdId ? { ...p, is_flash_sale: false, flash_sale_price: 0 } : p));
+        setFsProdId('');
+        setFsPrice('');
+      } else {
+        alert(data.message || 'Lỗi khi tắt Flash Sale!');
+      }
+    } catch (err) {
+      alert('Không thể kết nối đến máy chủ: ' + err.message);
+    } finally {
+      setSubmittingFS(false);
     }
   };
 
@@ -569,17 +649,31 @@ export default function ShopDashboard() {
                             </td>
                             <td className="py-4 px-6 text-right font-black text-gray-800">
                               {p.price.toLocaleString('vi-VN')} ₫
+                              {p.is_flash_sale && (
+                                <span className="block text-[9px] text-pink-600 font-bold mt-0.5">⚡ FS: {p.flash_sale_price.toLocaleString('vi-VN')}₫</span>
+                              )}
                             </td>
                             <td className="py-4 px-6 text-center font-semibold text-gray-500">
                               {p.stock} cái
                             </td>
                             <td className="py-4 px-6 text-center">
                               <span className="bg-green-50 text-green-600 text-[10px] font-bold px-2 py-0.8 rounded">
-                                Đang bán
+                                {p.is_flash_sale ? '⚡ Flash Sale' : 'Đang bán'}
                               </span>
                             </td>
                             <td className="py-4 px-6 text-center">
                               <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setFsProdId(p._id);
+                                    setFsPrice(p.flash_sale_price || p.price);
+                                    setActiveTab('orders');
+                                  }}
+                                  className="px-3 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                                  title="Cấu hình chạy sự kiện Flash Sale"
+                                >
+                                  ⚡ Sale
+                                </button>
                                 <button
                                   onClick={() => openEditModal(p)}
                                   className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
@@ -608,7 +702,75 @@ export default function ShopDashboard() {
                 TAB: QUẢN LÝ ĐƠN HÀNG (ORDERS)
                 ========================================== */}
             {activeTab === 'orders' && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="space-y-6 animate-in fade-in duration-200">
+                
+                {/* Khối Đăng ký Flash Sale nhanh */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-850 flex items-center gap-1.5 text-pink-600">⚡ Đăng ký bán Flash Sale</h3>
+                    <p className="text-[10px] text-gray-450 mt-0.5 font-medium">Thiết lập giá khuyến mãi chạy trên mục Flash Sale ngoài Trang chủ</p>
+                  </div>
+                  
+                  <form onSubmit={handleRegisterFlashSale} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                    <div>
+                      <label className="text-[9px] font-black text-gray-500 uppercase block mb-1.5">Chọn sản phẩm bán</label>
+                      <select
+                        value={fsProdId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFsProdId(val);
+                          const prod = products.find(p => p._id === val);
+                          if (prod) {
+                            setFsPrice(prod.flash_sale_price || prod.price);
+                          } else {
+                            setFsPrice('');
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-[#ff4081] transition-all cursor-pointer"
+                      >
+                        <option value="">-- Chọn sản phẩm --</option>
+                        {products.map(p => (
+                          <option key={p._id} value={p._id}>
+                            {p.name} (Gốc: {p.price.toLocaleString()}₫ {p.is_flash_sale ? '- Đang Sale' : ''})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] font-black text-gray-500 uppercase block mb-1.5">Giá Flash Sale (₫)</label>
+                      <input
+                        type="number"
+                        placeholder="Nhập giá Sale..."
+                        value={fsPrice}
+                        onChange={(e) => setFsPrice(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 outline-none focus:border-[#ff4081] transition-all"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={submittingFS}
+                        className="flex-1 py-2 px-4 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all disabled:opacity-60"
+                      >
+                        {submittingFS ? 'Đang lưu...' : '⚡ Bắt đầu Sale'}
+                      </button>
+                      
+                      {fsProdId && products.find(p => p._id === fsProdId)?.is_flash_sale && (
+                        <button
+                          type="button"
+                          onClick={handleCancelFlashSale}
+                          className="py-2 px-3 border border-red-200 text-red-500 hover:bg-red-50 rounded-xl text-xs font-bold cursor-pointer transition-all"
+                        >
+                          Tắt Sale
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
                   <h3 className="text-sm font-bold text-gray-800">Danh sách đơn hàng nhận được</h3>
                   <p className="text-[10px] text-gray-400 mt-0.5">Xử lý đóng gói và bàn giao cho đơn vị vận chuyển</p>
@@ -710,6 +872,7 @@ export default function ShopDashboard() {
                     </table>
                   </div>
                 )}
+                </div>
               </div>
             )}
 
