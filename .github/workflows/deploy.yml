@@ -84,6 +84,7 @@ jobs:
             set -e
             sudo cp /tmp/smart-fit-deploy/docker-compose.yml "${{ secrets.APP_DIR }}/docker-compose.yml"
             cd "${{ secrets.APP_DIR }}"
+            # Giải phóng dung lượng đĩa trước khi pull ảnh mới
+            sudo docker system prune -af
             sudo docker compose --env-file .env pull backend frontend
             sudo docker compose --env-file .env up -d --no-build
-            sudo docker image prune -f
