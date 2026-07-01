@@ -142,6 +142,34 @@ router.post('/add', upload.single('garment_image'), async (req, res) => {
       console.log(`✅ Khởi tạo thành công Shop "${shop_name}" (ID: ${shop._id})`);
     }
 
+    // 2. Kiểm tra giới hạn gói dịch vụ của Shop
+    const activeProductCount = await Product.countDocuments({ shop_id: shop._id, status: { $ne: 'hidden' } });
+    const isExpired = shop.subscription_expires_at && new Date(shop.subscription_expires_at) < new Date();
+    
+    if (isExpired) {
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(403).json({
+        success: false,
+        message: `Gói dịch vụ của cửa hàng đã hết hạn vào ngày ${new Date(shop.subscription_expires_at).toLocaleDateString('vi-VN')}! Vui lòng nâng cấp gói để tiếp tục đăng bán.`,
+      });
+    }
+
+    if (shop.tier === 'free' && activeProductCount >= 5) {
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(403).json({
+        success: false,
+        message: 'Cửa hàng đang sử dụng Gói Miễn Phí (tối đa 5 sản phẩm). Vui lòng nâng cấp lên gói Pro hoặc Premium để tiếp tục đăng bán!',
+      });
+    }
+
+    if (shop.tier === 'pro' && activeProductCount >= 50) {
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(403).json({
+        success: false,
+        message: 'Cửa hàng đang sử dụng Gói Pro (tối đa 50 sản phẩm). Vui lòng nâng cấp lên gói Premium để tiếp tục đăng bán!',
+      });
+    }
+
     // 2. Tạo đường dẫn file ảnh
     const absoluteImagePath = path.resolve(req.file.path).replace(/\\/g, '/');
     const publicUrl = publicUploadUrl('products', req.file.filename);

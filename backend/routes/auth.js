@@ -143,6 +143,8 @@ router.post('/login', async (req, res) => {
         shopData = {
           id: shop._id,
           name: shop.name,
+          tier: shop.tier,
+          subscription_expires_at: shop.subscription_expires_at,
         };
       } else {
         // Tự động tạo shop nếu chưa có
@@ -154,6 +156,8 @@ router.post('/login', async (req, res) => {
         shopData = {
           id: newShop._id,
           name: newShop.name,
+          tier: newShop.tier,
+          subscription_expires_at: newShop.subscription_expires_at,
         };
       }
     }
@@ -171,6 +175,47 @@ router.post('/login', async (req, res) => {
       }
     });
 
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ============================================================
+// API: POST /api/auth/shop/upgrade — Nâng cấp/Gia hạn gói Shop
+// ============================================================
+router.post('/shop/upgrade', async (req, res) => {
+  try {
+    const { shop_id, tier } = req.body;
+    if (!shop_id || !['free', 'pro', 'premium'].includes(tier)) {
+      return res.status(400).json({ success: false, message: 'Thông tin nâng cấp không hợp lệ!' });
+    }
+
+    const shop = await Shop.findById(shop_id);
+    if (!shop) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy cửa hàng!' });
+    }
+
+    // Nâng cấp gói
+    shop.tier = tier;
+    
+    // Cộng thêm 30 ngày sử dụng
+    const currentExpiry = shop.subscription_expires_at && new Date(shop.subscription_expires_at) > new Date()
+      ? new Date(shop.subscription_expires_at)
+      : new Date();
+      
+    shop.subscription_expires_at = new Date(currentExpiry.getTime() + 30 * 24 * 60 * 60 * 1000);
+    await shop.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Nâng cấp/Gia hạn thành công gói ${tier.toUpperCase()}!`,
+      shop: {
+        id: shop._id,
+        name: shop.name,
+        tier: shop.tier,
+        subscription_expires_at: shop.subscription_expires_at
+      }
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

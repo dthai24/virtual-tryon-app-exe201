@@ -35,6 +35,15 @@ const shopSchema = new mongoose.Schema(
       },
       default: 'active',
     },
+    tier: {
+      type: String,
+      enum: ['free', 'pro', 'premium'],
+      default: 'free',
+    },
+    subscription_expires_at: {
+      type: Date,
+      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Mặc định 1 tháng miễn phí ban đầu
+    },
   },
   {
     timestamps: true,

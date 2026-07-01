@@ -23,6 +23,12 @@ export default function ShopDashboard() {
   // State phục vụ thống kê ảo + thật
   const [tryonHits, setTryonHits] = useState(0);
 
+  // State phục vụ nâng cấp gói thuê bao cửa hàng
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedTier, setSelectedTier] = useState(null);
+  const [selectedPrice, setSelectedPrice] = useState(0);
+  const [upgrading, setUpgrading] = useState(false);
+
   // Bảo vệ route - Chỉ cho phép Seller truy cập
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -86,6 +92,45 @@ export default function ShopDashboard() {
   const handleLogout = () => {
     localStorage.removeItem('user');
     router.push('/login');
+  };
+
+  const handleUpgradeShop = async () => {
+    if (!seller || !seller.shop || !selectedTier) return;
+    setUpgrading(true);
+    try {
+      const response = await fetch(apiUrl('/api/auth/shop/upgrade'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: seller.shop.id,
+          tier: selectedTier,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        alert(data.message || `Nâng cấp thành công lên gói ${selectedTier.toUpperCase()}!`);
+        
+        // Cập nhật state và localStorage
+        const updatedSeller = {
+          ...seller,
+          shop: {
+            ...seller.shop,
+            tier: data.shop.tier,
+            subscription_expires_at: data.shop.subscription_expires_at,
+          }
+        };
+        setSeller(updatedSeller);
+        localStorage.setItem('user', JSON.stringify(updatedSeller));
+        
+        setShowUpgradeModal(false);
+      } else {
+        alert(data.message || 'Lỗi khi nâng cấp gói!');
+      }
+    } catch (error) {
+      alert('Không thể kết nối đến máy chủ: ' + error.message);
+    } finally {
+      setUpgrading(false);
+    }
   };
 
   // Mở modal sửa, điền sẵn thông tin sản phẩm
@@ -264,6 +309,14 @@ export default function ShopDashboard() {
                     {pendingOrders}
                   </span>
                 )}
+              </button>
+              <button
+                onClick={() => setActiveTab('subscription')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'subscription' ? 'bg-[#ee4d2d] text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                }`}
+              >
+                💎 Gói dịch vụ Shop
               </button>
             </nav>
           </div>
@@ -660,6 +713,153 @@ export default function ShopDashboard() {
               </div>
             )}
 
+            {/* ==========================================
+                TAB: GÓI DỊCH VỤ SHOP (SUBSCRIPTION)
+                ========================================== */}
+            {activeTab === 'subscription' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                
+                {/* Thông tin gói hiện tại */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold text-gray-800">Trạng thái Gói Cửa Hàng Hiện Tại</h3>
+                    <p className="text-xs text-gray-500 font-medium">Quản lý và gia hạn các gói dịch vụ giới hạn sản phẩm đăng bán.</p>
+                    
+                    <div className="flex flex-wrap items-center gap-6 mt-4">
+                      <div>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Gói hiện tại</span>
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-black uppercase mt-1.5 ${
+                          seller?.shop?.tier === 'premium' ? 'bg-purple-100 text-purple-600' :
+                          seller?.shop?.tier === 'pro' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          👑 Gói {seller?.shop?.tier === 'premium' ? 'Premium' : seller?.shop?.tier === 'pro' ? 'Pro' : 'Miễn Phí'}
+                        </span>
+                      </div>
+
+                      <div className="h-8 w-[1px] bg-gray-200"></div>
+
+                      <div>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Hạn dùng đến ngày</span>
+                        <span className="text-xs font-extrabold text-gray-700 block mt-1.5">
+                          {seller?.shop?.subscription_expires_at ? new Date(seller.shop.subscription_expires_at).toLocaleDateString('vi-VN') : 'Không giới hạn'}
+                        </span>
+                      </div>
+
+                      <div className="h-8 w-[1px] bg-gray-200"></div>
+
+                      <div>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Số sản phẩm đã đăng</span>
+                        <span className="text-xs font-extrabold text-gray-700 block mt-1.5">
+                          {products.length} / {
+                            seller?.shop?.tier === 'premium' ? 'Vô hạn' :
+                            seller?.shop?.tier === 'pro' ? '50' : '5'
+                          } sản phẩm
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const element = document.getElementById('upgrade-packages');
+                      element?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-5 py-2.5 bg-[#ee4d2d] text-white text-xs font-bold rounded-xl hover:bg-orange-600 shadow cursor-pointer transition-all active:scale-[0.98] shrink-0"
+                  >
+                    🚀 Gia hạn / Nâng cấp ngay
+                  </button>
+                </div>
+
+                {/* Danh sách các gói đăng ký */}
+                <div id="upgrade-packages" className="space-y-4">
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">📦 Các gói dịch vụ đăng ký cửa hàng</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Gói Miễn Phí */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col justify-between relative overflow-hidden">
+                      {seller?.shop?.tier === 'free' && (
+                        <div className="absolute top-2 right-2 bg-gray-500 text-white text-[9px] font-bold px-2 py-0.5 rounded">Đang sử dụng</div>
+                      )}
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-700">🎁 Gói Miễn Phí</h4>
+                        <p className="text-2xl font-black text-gray-800 mt-4">0 đ <span className="text-xs text-gray-400 font-medium">/ 1 tháng đầu</span></p>
+                        
+                        <ul className="text-xs text-gray-500 space-y-2 mt-6">
+                          <li className="flex items-center gap-2">✔️ Đăng tối đa 5 sản phẩm</li>
+                          <li className="flex items-center gap-2">✔️ Miễn phí dùng thử 1 tháng</li>
+                          <li className="flex items-center gap-2 text-red-500">❌ Không hỗ trợ gia hạn miễn phí</li>
+                        </ul>
+                      </div>
+
+                      <button
+                        disabled
+                        className="w-full py-2.5 bg-gray-100 text-gray-400 text-xs font-bold rounded-xl mt-8 cursor-not-allowed"
+                      >
+                        Chỉ áp dụng khi tạo Shop
+                      </button>
+                    </div>
+
+                    {/* Gói Pro */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col justify-between relative overflow-hidden">
+                      {seller?.shop?.tier === 'pro' && (
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white text-[9px] font-bold px-2 py-0.5 rounded">Đang sử dụng</div>
+                      )}
+                      <div>
+                        <h4 className="text-sm font-bold text-blue-600">⚡ Gói Pro</h4>
+                        <p className="text-2xl font-black text-gray-800 mt-4">199.000 đ <span className="text-xs text-gray-400 font-medium">/ 30 ngày</span></p>
+                        
+                        <ul className="text-xs text-gray-500 space-y-2 mt-6">
+                          <li className="flex items-center gap-2">✔️ Đăng tối đa 50 sản phẩm</li>
+                          <li className="flex items-center gap-2">✔️ Không giới hạn thời gian</li>
+                          <li className="flex items-center gap-2">✔️ Thử đồ AI bằng ảnh siêu thực</li>
+                        </ul>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedTier('pro');
+                          setSelectedPrice(199000);
+                          setShowUpgradeModal(true);
+                        }}
+                        className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-xl mt-8 shadow active:scale-[0.98] transition-all cursor-pointer"
+                      >
+                        {seller?.shop?.tier === 'pro' ? '⚡ Gia hạn gói Pro' : '🚀 Chọn mua gói Pro'}
+                      </button>
+                    </div>
+
+                    {/* Gói Premium */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col justify-between relative overflow-hidden">
+                      {seller?.shop?.tier === 'premium' && (
+                        <div className="absolute top-2 right-2 bg-purple-500 text-white text-[9px] font-bold px-2 py-0.5 rounded">Đang sử dụng</div>
+                      )}
+                      <div>
+                        <h4 className="text-sm font-bold text-purple-600">👑 Gói Premium</h4>
+                        <p className="text-2xl font-black text-gray-800 mt-4">499.000 đ <span className="text-xs text-gray-400 font-medium">/ 30 ngày</span></p>
+                        
+                        <ul className="text-xs text-gray-500 space-y-2 mt-6">
+                          <li className="flex items-center gap-2">✔️ Không giới hạn sản phẩm</li>
+                          <li className="flex items-center gap-2">✔️ Thử đồ AI bằng ảnh siêu thực</li>
+                          <li className="flex items-center gap-2">✔️ Ghép video Catwalk 3D chuyển động</li>
+                        </ul>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedTier('premium');
+                          setSelectedPrice(499000);
+                          setShowUpgradeModal(true);
+                        }}
+                        className="w-full py-2.5 bg-purple-500 hover:bg-purple-600 text-white text-xs font-bold rounded-xl mt-8 shadow active:scale-[0.98] transition-all cursor-pointer"
+                      >
+                        {seller?.shop?.tier === 'premium' ? '⚡ Gia hạn gói Premium' : '🚀 Chọn mua gói Premium'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
           </div>
 
           {/* Footer */}
@@ -771,6 +971,79 @@ export default function ShopDashboard() {
                 {savingEdit ? '⏳ Đang lưu...' : '💾 Lưu thay đổi'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL THANH TOÁN & NÂNG CẤP GÓI DỊCH VỤ ===== */}
+      {showUpgradeModal && selectedTier && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-[450px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-[#fff0f5]">
+              <div>
+                <h3 className="text-sm font-bold text-gray-800">💳 THANH TOÁN GIA HẠN / NÂNG CẤP SHOP</h3>
+                <p className="text-[10px] text-gray-400 mt-0.5">Nâng cấp tự động qua VietQR PayOS</p>
+              </div>
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
+                disabled={upgrading}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-500 font-semibold">Tên gói đăng ký:</span>
+                <span className="font-extrabold text-gray-800 uppercase">⚡ GÓI {selectedTier.toUpperCase()}</span>
+              </div>
+              
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-500 font-semibold">Số tiền cần thanh toán:</span>
+                <span className="font-extrabold text-red-500 text-sm">{selectedPrice.toLocaleString('vi-VN')} đ</span>
+              </div>
+
+              {/* QR Code VietQR */}
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-center space-y-3">
+                <p className="text-[10px] text-gray-400 font-bold uppercase">QUÉT MÃ VIETQR ĐỂ CHUYỂN KHOẢN</p>
+                
+                <img
+                  src={`https://api.vietqr.io/image/970422-70724012004-compact2.png?amount=${selectedPrice}&addInfo=UPGRADE%20${seller?.shop?.id}%20${selectedTier.toUpperCase()}&accountName=CAP%20DUY%20THAI`}
+                  className="w-48 h-48 mx-auto rounded-lg border border-white shadow-sm"
+                  alt="VietQR Payout"
+                />
+
+                <div className="text-[10px] text-gray-500 space-y-1 font-medium text-left bg-white p-3 rounded-lg border border-gray-100">
+                  <p>Ngân hàng: <strong className="text-gray-700">MB Bank (Ngân hàng Quân Đội)</strong></p>
+                  <p>Số tài khoản: <strong className="text-gray-700">70724012004</strong></p>
+                  <p>Chủ tài khoản: <strong className="text-gray-700">CAP DUY THAI</strong></p>
+                  <p className="truncate">Nội dung CK: <strong className="text-pink-600">UPGRADE {seller?.shop?.id} {selectedTier.toUpperCase()}</strong></p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-3">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="flex-1 py-2.5 border border-gray-200 text-gray-500 rounded-xl text-xs font-bold hover:bg-gray-100 cursor-pointer"
+                disabled={upgrading}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleUpgradeShop}
+                className="flex-1 py-2.5 bg-[#ff4081] text-white rounded-xl text-xs font-bold hover:bg-pink-600 shadow cursor-pointer transition-all active:scale-[0.98]"
+                disabled={upgrading}
+              >
+                {upgrading ? 'Đang kích hoạt...' : 'Tôi đã chuyển khoản'}
+              </button>
+            </div>
+
           </div>
         </div>
       )}
