@@ -136,10 +136,9 @@ export default function AdminDashboard() {
     <>
       <Head>
         <title>Quản Trị Hệ Thống - SmartFit</title>
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet" />
       </Head>
 
-      <div className="min-h-screen bg-gray-50 flex flex-col font-sans" style={{ fontFamily: "'Outfit', sans-serif" }}>
+      <div className="min-h-screen bg-gray-50 flex flex-col font-sans" style={{ fontFamily: "'Inter', sans-serif" }}>
         
         {/* HEADER BAR */}
         <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
