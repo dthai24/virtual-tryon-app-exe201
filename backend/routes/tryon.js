@@ -378,37 +378,49 @@ router.post('/recharge', async (req, res) => {
 });
 
 // ============================================================
-// API: POST /api/tryon/casso-webhook — Cổng thanh toán thực tế (Casso)
+// API: POST /api/tryon/casso-webhook — Cổng thanh toán thực tế (Casso hoặc PayOS)
 // Nhận biến động số dư thực tế từ ngân hàng và tự động cộng xu
 // ============================================================
 router.post('/casso-webhook', async (req, res) => {
   try {
-    const secureToken = req.headers['secure-token'] || req.headers['Secure-Token'] || req.headers['secure_token'];
-    const expectedToken = process.env.CASSO_SECURE_TOKEN || 'SmartFitSecureToken123';
+    const body = req.body;
+    console.log(`\n🔔 [Payment Webhook] Nhận request mới:`, JSON.stringify(body, null, 2));
 
-    if (secureToken !== expectedToken) {
-      console.log('⚠️ [Casso Webhook] Token bảo mật không chính xác:', secureToken);
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
-    }
+    // 1. KIỂM TRA NẾU LÀ PAYOS PAYLOAD
+    if (body.code !== undefined && body.desc !== undefined && body.data) {
+      console.log('💳 [Payment Webhook] Nhận dữ liệu từ PayOS');
 
-    const { data } = req.body;
-    if (!data || !Array.isArray(data)) {
-      return res.status(400).json({ success: false, message: 'Invalid payload' });
-    }
+      const payosData = body.data;
+      const payosChecksumKey = '8634eaec7a590643b26c1dfc6853400dca9f9ccb2eae09f5c96cfc7031548c73';
 
-    console.log(`\n🔔 [Casso Webhook] Nhận ${data.length} giao dịch ngân hàng mới:`);
+      // Xác thực chữ ký PayOS để bảo mật
+      const crypto = require('crypto');
+      const sortedKeys = Object.keys(payosData).filter(k => k !== 'signature').sort();
+      const queryParts = [];
+      for (const key of sortedKeys) {
+        let val = payosData[key];
+        if (val === null || val === undefined) val = '';
+        queryParts.push(`${key}=${val}`);
+      }
+      const queryString = queryParts.join('&');
+      const calculatedSignature = crypto.createHmac('sha256', payosChecksumKey).update(queryString).digest('hex');
 
-    for (const transaction of data) {
-      const description = transaction.description || '';
-      const amount = Number(transaction.amount) || 0;
+      if (calculatedSignature !== payosData.signature) {
+        console.log('⚠️ [Payment Webhook] Sai chữ ký PayOS. Tính toán:', calculatedSignature, 'Nhận:', payosData.signature);
+        return res.status(401).json({ success: false, message: 'Unauthorized (Signature mismatch)' });
+      }
 
-      console.log(`- GD: ${transaction.tid} | Số tiền: ${amount}đ | Nội dung: "${description}"`);
+      // Xử lý nạp tiền từ PayOS
+      const description = payosData.description || '';
+      const amount = Number(payosData.amount) || 0;
+
+      console.log(`- GD PayOS: ${payosData.reference || payosData.orderCode} | Số tiền: ${amount}đ | Nội dung: "${description}"`);
 
       // Tìm cú pháp NAPXU và mã định danh 6 ký tự
       const match = description.match(/NAPXU\s+([A-F0-9]{6})/i);
       if (!match) {
-        console.log(`⚠️ Nội dung không chứa mã NAPXU định danh.`);
-        continue;
+        console.log(`⚠️ Nội dung chuyển khoản PayOS không chứa mã NAPXU định danh.`);
+        return res.status(200).json({ success: true, message: 'No NAPXU tag found' });
       }
 
       const shortId = match[1].toLowerCase();
@@ -419,7 +431,7 @@ router.post('/casso-webhook', async (req, res) => {
 
       if (!user) {
         console.log(`❌ Không tìm thấy user có ID khớp với mã: ${shortId}`);
-        continue;
+        return res.status(200).json({ success: true, message: 'User not found' });
       }
 
       // Đánh giá gói nạp dựa trên số tiền thực tế chuyển
@@ -437,7 +449,7 @@ router.post('/casso-webhook', async (req, res) => {
 
       if (coinsToAdd <= 0) {
         console.log(`⚠️ Số tiền ${amount}đ không đủ quy đổi xu.`);
-        continue;
+        return res.status(200).json({ success: true, message: 'Amount too low' });
       }
 
       // Cộng xu vào tài khoản người dùng
@@ -449,16 +461,84 @@ router.post('/casso-webhook', async (req, res) => {
         user_id: user._id,
         amount: coinsToAdd,
         type: 'purchase',
-        description: `Nạp ${coinsToAdd} xu qua ngân hàng thật (Mã GD: ${transaction.tid}, Số tiền: ${amount.toLocaleString('vi-VN')}đ)`,
+        description: `Nạp ${coinsToAdd} xu qua cổng PayOS thật (Mã GD PayOS: ${payosData.reference || payosData.orderCode}, Số tiền: ${amount.toLocaleString('vi-VN')}đ)`,
       });
 
       console.log(`✅ Nạp thành công ${coinsToAdd} xu cho tài khoản ${user.username} (${user.email})`);
+      return res.status(200).json({ success: true, message: 'Processed PayOS payment successfully' });
     }
 
-    return res.status(200).json({ success: true, message: 'Processed successfully' });
+    // 2. KIỂM TRA NẾU LÀ CASSO PAYLOAD
+    const secureToken = req.headers['secure-token'] || req.headers['Secure-Token'] || req.headers['secure_token'];
+    const expectedToken = process.env.CASSO_SECURE_TOKEN || 'SmartFitSecureToken123';
+
+    if (body.data && Array.isArray(body.data)) {
+      console.log('💳 [Payment Webhook] Nhận dữ liệu từ Casso');
+
+      if (secureToken !== expectedToken) {
+        console.log('⚠️ [Payment Webhook] Token bảo mật Casso không chính xác:', secureToken);
+        return res.status(401).json({ success: false, message: 'Unauthorized (Casso token mismatch)' });
+      }
+
+      const { data } = body;
+      for (const transaction of data) {
+        const description = transaction.description || '';
+        const amount = Number(transaction.amount) || 0;
+
+        console.log(`- GD Casso: ${transaction.tid} | Số tiền: ${amount}đ | Nội dung: "${description}"`);
+
+        const match = description.match(/NAPXU\s+([A-F0-9]{6})/i);
+        if (!match) {
+          console.log(`⚠️ Nội dung không chứa mã NAPXU định danh.`);
+          continue;
+        }
+
+        const shortId = match[1].toLowerCase();
+
+        const users = await User.find({});
+        const user = users.find(u => u._id.toString().substring(u._id.toString().length - 6) === shortId);
+
+        if (!user) {
+          console.log(`❌ Không tìm thấy user có ID khớp với mã: ${shortId}`);
+          continue;
+        }
+
+        let coinsToAdd = 0;
+        if (amount >= 200000) {
+          coinsToAdd = 30;
+        } else if (amount >= 100000) {
+          coinsToAdd = 12;
+        } else if (amount >= 50000) {
+          coinsToAdd = 5;
+        } else {
+          coinsToAdd = Math.floor(amount / 10000);
+        }
+
+        if (coinsToAdd <= 0) {
+          console.log(`⚠️ Số tiền ${amount}đ không đủ quy đổi xu.`);
+          continue;
+        }
+
+        user.credits += coinsToAdd;
+        await user.save();
+
+        await CreditTransaction.create({
+          user_id: user._id,
+          amount: coinsToAdd,
+          type: 'purchase',
+          description: `Nạp ${coinsToAdd} xu qua Casso thật (Mã GD: ${transaction.tid}, Số tiền: ${amount.toLocaleString('vi-VN')}đ)`,
+        });
+
+        console.log(`✅ Nạp thành công ${coinsToAdd} xu cho tài khoản ${user.username} (${user.email})`);
+      }
+
+      return res.status(200).json({ success: true, message: 'Processed Casso payments successfully' });
+    }
+
+    return res.status(400).json({ success: false, message: 'Unknown webhook provider format' });
 
   } catch (error) {
-    console.error('❌ Lỗi xử lý Casso Webhook:', error.message);
+    console.error('❌ Lỗi xử lý Webhook:', error.message);
     return res.status(500).json({ success: true, message: error.message });
   }
 });

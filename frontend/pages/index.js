@@ -1427,7 +1427,7 @@ export default function Home() {
                   {/* Mã QR VietQR */}
                   <div className="text-center">
                     <img
-                      src={`https://img.vietqr.io/image/tcb-0987654321-compact2.png?amount=${selectedPackage.vnd}&addInfo=NAPXU%20${user._id.substring(user._id.length - 6).toUpperCase()}&accountName=SMARTFIT%20SYSTEM`}
+                      src={`https://img.vietqr.io/image/mb-70724012004-compact2.png?amount=${selectedPackage.vnd}&addInfo=NAPXU%20${user._id.substring(user._id.length - 6).toUpperCase()}&accountName=CAP%20DUY%20THAI`}
                       className="mx-auto w-[180px] h-[180px] rounded-xl border border-gray-100 shadow-sm bg-white p-2"
                       alt="VietQR Chuyển Khoản"
                     />
@@ -1438,15 +1438,15 @@ export default function Home() {
                   <div className="text-xs space-y-2 text-gray-600">
                     <div>
                       <span className="text-[10px] text-gray-400 font-bold uppercase block">Ngân hàng</span>
-                      <span className="font-extrabold text-gray-800">Techcombank (TCB)</span>
+                      <span className="font-extrabold text-gray-800">MB Bank (Ngân hàng Quân Đội)</span>
                     </div>
                     <div>
                       <span className="text-[10px] text-gray-400 font-bold uppercase block">Số tài khoản</span>
-                      <span className="font-extrabold text-gray-800">0987654321</span>
+                      <span className="font-extrabold text-gray-800">70724012004</span>
                     </div>
                     <div>
                       <span className="text-[10px] text-gray-400 font-bold uppercase block">Chủ tài khoản</span>
-                      <span className="font-extrabold text-gray-800">SMARTFIT SYSTEM</span>
+                      <span className="font-extrabold text-gray-800">CAP DUY THAI</span>
                     </div>
                     <div>
                       <span className="text-[10px] text-gray-400 font-bold uppercase block">Số tiền</span>
