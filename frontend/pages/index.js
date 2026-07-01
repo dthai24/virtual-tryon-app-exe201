@@ -563,7 +563,7 @@ export default function Home() {
       <div className="min-h-screen bg-[#f5f5f5] pb-20" style={{ fontFamily: "'Inter', sans-serif" }}>
         
         {/* ===== SHOPEE STYLE TOP HEADER BAR ===== */}
-        <header className="bg-gradient-to-b from-[#f53d2d] to-[#f63] text-white shadow-md sticky top-0 z-40">
+        <header className="bg-gradient-to-b from-[#ff4081] to-[#ff80ab] text-white shadow-md sticky top-0 z-40">
           
           {/* Subheader: Top Links */}
           <div className="max-w-[1200px] mx-auto px-4 py-1.5 flex items-center justify-between text-[11px] border-b border-white/10 opacity-90">
@@ -620,7 +620,7 @@ export default function Home() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full px-3 py-1.5 text-xs text-gray-800 focus:outline-none placeholder-gray-400 font-medium"
                 />
-                <button className="bg-[#ee4d2d] hover:bg-[#ff5722] text-white px-6 py-2 rounded-md font-bold text-xs cursor-pointer flex items-center gap-1 transition-all">
+                <button className="bg-[#ff4081] hover:bg-[#ff80ab] text-white px-6 py-2 rounded-md font-bold text-xs cursor-pointer flex items-center gap-1 transition-all">
                   🔍 Tìm
                 </button>
               </div>
@@ -648,7 +648,7 @@ export default function Home() {
                     <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
                   </svg>
                   {totalCartItems > 0 && (
-                    <span className="absolute -top-1 -right-2 bg-yellow-400 text-[#ee4d2d] text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#ee4d2d] shadow">
+                    <span className="absolute -top-1 -right-2 bg-yellow-400 text-[#ff4081] text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#ff4081] shadow">
                       {totalCartItems}
                     </span>
                   )}
@@ -668,7 +668,7 @@ export default function Home() {
                   {user.role === 'buyer' && (
                     <button
                       onClick={handleOpenRecharge}
-                      className="w-5 h-5 bg-yellow-400 hover:bg-yellow-300 text-[#ee4d2d] text-[11px] rounded-full flex items-center justify-center font-black shadow transition-all cursor-pointer"
+                      className="w-5 h-5 bg-yellow-400 hover:bg-yellow-300 text-[#ff4081] text-[11px] rounded-full flex items-center justify-center font-black shadow transition-all cursor-pointer"
                       title="Nạp tiền thật lấy xu AI"
                     >
                       +
@@ -687,7 +687,7 @@ export default function Home() {
                   {user.role === 'shop_owner' && (
                     <button
                       onClick={() => router.push('/shop/dashboard')}
-                      className="px-2 py-0.5 bg-[#ee4d2d] text-white text-[9px] rounded font-bold uppercase hover:bg-orange-600 border border-white/30 transition-all cursor-pointer"
+                      className="px-2 py-0.5 bg-[#ff4081] text-white text-[9px] rounded font-bold uppercase hover:bg-pink-600 border border-white/30 transition-all cursor-pointer"
                     >
                       🏪 Kênh Bán
                     </button>
@@ -711,7 +711,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             
             {/* Banner chính bên trái */}
-            <div className="lg:col-span-2 relative h-[280px] bg-gradient-to-r from-[#ee4d2d] to-[#ff7337] rounded-lg overflow-hidden shadow flex items-center p-8 text-white">
+            <div className="lg:col-span-2 relative h-[280px] bg-gradient-to-r from-[#ff4081] to-[#ff80ab] rounded-lg overflow-hidden shadow flex items-center p-8 text-white">
               <div className="max-w-[450px] z-10 space-y-4">
                 <span className="bg-white/20 backdrop-blur text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full">
                   ✨ Trải nghiệm mua sắm đột phá
@@ -727,7 +727,7 @@ export default function Home() {
                     const catalog = document.getElementById('catalog');
                     catalog?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="px-6 py-3 bg-white text-[#ee4d2d] hover:bg-yellow-50 text-xs font-black rounded-lg shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                  className="px-6 py-3 bg-white text-[#ff4081] hover:bg-yellow-50 text-xs font-black rounded-lg shadow-md transition-all active:scale-[0.98] cursor-pointer"
                 >
                   🛍️ Trải Nghiệm Ngay
                 </button>
@@ -795,10 +795,10 @@ export default function Home() {
                 onClick={shortcut.onClick}
                 className="flex flex-col items-center gap-2 cursor-pointer group hover:-translate-y-1 transition-all duration-200"
               >
-                <div className="w-12 h-12 rounded-full bg-orange-50 group-hover:bg-[#ee4d2d]/10 flex items-center justify-center text-2xl shadow-inner transition-colors">
+                <div className="w-12 h-12 rounded-full bg-pink-50 group-hover:bg-[#ff4081]/10 flex items-center justify-center text-2xl shadow-inner transition-colors">
                   {shortcut.icon}
                 </div>
-                <span className="text-[10px] font-bold text-gray-600 group-hover:text-[#ee4d2d] leading-tight">
+                <span className="text-[10px] font-bold text-gray-600 group-hover:text-[#ff4081] leading-tight">
                   {shortcut.label}
                 </span>
               </div>
@@ -811,9 +811,9 @@ export default function Home() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
             
             {/* Flash Sale Header */}
-            <div className="p-4 flex items-center justify-between border-b border-gray-50 bg-[#fff5f2]">
+            <div className="p-4 flex items-center justify-between border-b border-gray-50 bg-[#fff0f5]">
               <div className="flex items-center gap-3">
-                <span className="text-xl font-black text-[#ee4d2d] italic tracking-tighter" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                <span className="text-xl font-black text-[#ff4081] italic tracking-tighter" style={{ fontFamily: "'Montserrat', sans-serif" }}>
                   ⚡ FLASH SALE
                 </span>
                 
@@ -827,7 +827,7 @@ export default function Home() {
                 </div>
               </div>
               
-              <span className="text-xs text-gray-500 font-bold hover:text-[#ee4d2d] cursor-pointer">Xem tất cả &gt;</span>
+              <span className="text-xs text-gray-500 font-bold hover:text-[#ff4081] cursor-pointer">Xem tất cả &gt;</span>
             </div>
 
             {/* Flash Sale Horizontal Scroll */}
@@ -836,7 +836,7 @@ export default function Home() {
                 <div
                   key={p._id}
                   onClick={() => handleOpenDetail(p)}
-                  className="border border-gray-100 hover:border-[#ee4d2d] rounded-lg p-3 cursor-pointer flex flex-col justify-between hover:shadow-md transition-all group"
+                  className="border border-gray-100 hover:border-[#ff4081] rounded-lg p-3 cursor-pointer flex flex-col justify-between hover:shadow-md transition-all group"
                 >
                   <div className="relative pt-[100%] bg-gray-50 rounded overflow-hidden">
                     <img
@@ -844,19 +844,19 @@ export default function Home() {
                       className="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform"
                       alt=""
                     />
-                    <div className="absolute top-0 right-0 bg-[#fde9e7] text-[#ee4d2d] text-[9px] font-bold px-1.5 py-0.5 rounded-bl">
+                    <div className="absolute top-0 right-0 bg-[#fff0f5] text-[#ff4081] text-[9px] font-bold px-1.5 py-0.5 rounded-bl">
                       Giảm 30%
                     </div>
                   </div>
 
                   <div className="mt-3 space-y-2">
-                    <p className="text-[#ee4d2d] font-black text-sm text-center">
+                    <p className="text-[#ff4081] font-black text-sm text-center">
                       ₫{(p.price * 0.7).toLocaleString('vi-VN')}
                     </p>
                     
                     {/* Progress Bar bán chạy */}
-                    <div className="w-full bg-orange-100 rounded-full h-4 relative flex items-center justify-center overflow-hidden">
-                      <div className="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full absolute left-0 top-0" style={{ width: '65%' }}></div>
+                    <div className="w-full bg-pink-100 rounded-full h-4 relative flex items-center justify-center overflow-hidden">
+                      <div className="bg-gradient-to-r from-[#ff4081] to-[#ff80ab] h-full rounded-full absolute left-0 top-0" style={{ width: '65%' }}></div>
                       <span className="text-[9px] text-white font-extrabold z-10 uppercase tracking-wider">ĐANG BÁN CHẠY</span>
                     </div>
                   </div>
@@ -871,7 +871,7 @@ export default function Home() {
         <main id="catalog" className="max-w-[1200px] mx-auto px-4 mt-8">
           
           {/* Lọc danh mục dạng Tab của Shopee */}
-          <div className="bg-white border-b-2 border-[#ee4d2d] flex items-center justify-between mb-4 shadow-sm rounded-t-lg">
+          <div className="bg-white border-b-2 border-[#ff4081] flex items-center justify-between mb-4 shadow-sm rounded-t-lg">
             <div className="flex">
               {[
                 { id: 'all', label: 'GỢI Ý HÔM NAY' },
@@ -883,8 +883,8 @@ export default function Home() {
                   onClick={() => setSelectedCategoryFilter(tab.id)}
                   className={`px-6 py-4 text-xs font-bold transition-all cursor-pointer border-b-4 ${
                     selectedCategoryFilter === tab.id
-                      ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#fff5f2]'
-                      : 'border-transparent text-gray-600 hover:text-[#ee4d2d]'
+                      ? 'border-[#ff4081] text-[#ff4081] bg-[#fff0f5]'
+                      : 'border-transparent text-gray-600 hover:text-[#ff4081]'
                   }`}
                 >
                   {tab.label}
@@ -932,7 +932,7 @@ export default function Home() {
                     />
                     
                     {/* Badge Mall / Yêu thích giống Shopee */}
-                    <span className="absolute top-2 left-2 bg-[#ee4d2d] text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow">
+                    <span className="absolute top-2 left-2 bg-[#ff4081] text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow">
                       Mall
                     </span>
                   </div>
@@ -949,7 +949,7 @@ export default function Home() {
                     <div>
                       {/* Giá & đã bán giống Shopee */}
                       <div className="flex items-center justify-between mt-1">
-                        <span className="text-sm font-black text-[#ee4d2d]">
+                        <span className="text-sm font-black text-[#ff4081]">
                           ₫{product.price.toLocaleString('vi-VN')}
                         </span>
                         <span className="text-[9px] text-gray-400 font-bold shrink-0">
