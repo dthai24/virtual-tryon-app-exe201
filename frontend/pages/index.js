@@ -77,6 +77,10 @@ export default function Home() {
   const [aiHistoryId, setAiHistoryId] = useState(null);
   const [aiError, setAiError] = useState(null);
 
+  // State hỗ trợ tìm kiếm và lọc sản phẩm theo phong cách Shopee
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
+
   // ============================================================
   // LOAD DỮ LIỆU ĐẦU VÀO
   // ============================================================
@@ -549,227 +553,409 @@ export default function Home() {
         <title>SmartFit — Sàn TMĐT B2B2C Tích Hợp AI Try-on</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50 pb-20" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="min-h-screen bg-[#f5f5f5] pb-20" style={{ fontFamily: "'Inter', sans-serif" }}>
         
-        {/* ===== TOP NAVBAR ===== */}
-        <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40">
-          <div className="max-w-[1200px] mx-auto px-6 h-[70px] flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#ff4081] to-[#ff80ab] flex items-center justify-center shadow-md shadow-[#ff4081]/20">
-                <span className="text-white text-lg font-black" style={{ fontFamily: "'Montserrat', sans-serif" }}>S</span>
-              </div>
+        {/* ===== SHOPEE STYLE TOP HEADER BAR ===== */}
+        <header className="bg-gradient-to-b from-[#f53d2d] to-[#f63] text-white shadow-md sticky top-0 z-40">
+          
+          {/* Subheader: Top Links */}
+          <div className="max-w-[1200px] mx-auto px-4 py-1.5 flex items-center justify-between text-[11px] border-b border-white/10 opacity-90">
+            <div className="flex items-center gap-3">
+              <span className="hover:text-white/80 cursor-pointer" onClick={() => router.push('/')}>Kênh Người Bán</span>
+              <span className="w-[1px] h-3 bg-white/20"></span>
+              <span className="hover:text-white/80 cursor-pointer">Tải ứng dụng</span>
+              <span className="w-[1px] h-3 bg-white/20"></span>
+              <span className="hover:text-white/80 cursor-pointer">Kết nối</span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <span className="hover:text-white/80 cursor-pointer">🔔 Thông báo</span>
+              <span className="hover:text-white/80 cursor-pointer">❓ Hỗ trợ</span>
+              <span className="hover:text-white/80 cursor-pointer">🌐 Tiếng Việt</span>
+              
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-yellow-200">👑 {user.username} ({user.role === 'admin' ? 'Admin' : user.role === 'shop_owner' ? 'Seller' : 'Buyer'})</span>
+                </div>
+              ) : (
+                <span className="hover:text-white/80 cursor-pointer font-bold" onClick={() => router.push('/login')}>Đăng nhập</span>
+              )}
+            </div>
+          </div>
+
+          {/* Main Header Row: Logo, Search, Cart */}
+          <div className="max-w-[1200px] mx-auto px-4 py-4 flex items-center justify-between gap-6">
+            
+            {/* Logo Shopee Style */}
+            <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={() => {
+              setSearchQuery('');
+              setSelectedCategoryFilter('all');
+              router.push('/');
+            }}>
+              <svg className="w-9 h-9 text-white fill-current" viewBox="0 0 24 24">
+                <path d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 17H5V8h14v12z"/>
+              </svg>
               <div>
-                <h1 className="text-lg font-black tracking-wider text-gray-800" style={{ fontFamily: "'Montserrat', sans-serif" }}>SMART FIT</h1>
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest">B2B2C AI Platform</p>
+                <h1 className="text-xl font-black tracking-tighter text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  SmartFit
+                </h1>
+                <p className="text-[9px] text-yellow-100 font-extrabold uppercase tracking-widest leading-none">AI SHOPPING</p>
               </div>
             </div>
 
-            {/* Right Menu: Guest vs Logged User */}
-            <div className="flex items-center gap-4">
+            {/* Search Bar Shopee Style */}
+            <div className="flex-1 max-w-[750px]">
+              <div className="bg-white p-1 rounded-md shadow-sm flex items-center border-2 border-white focus-within:border-gray-300">
+                <input
+                  type="text"
+                  placeholder="Thử đồ AI siêu thực - Tìm kiếm trang phục thời trang..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs text-gray-800 focus:outline-none placeholder-gray-400 font-medium"
+                />
+                <button className="bg-[#ee4d2d] hover:bg-[#ff5722] text-white px-6 py-2 rounded-md font-bold text-xs cursor-pointer flex items-center gap-1 transition-all">
+                  🔍 Tìm
+                </button>
+              </div>
               
-              {user ? (
-                <>
-                  {/* Nếu là Seller thì hiển thị nút đi tới Dashboard */}
-                  {user.role === 'shop_owner' && (
-                    <button
-                      onClick={() => router.push('/shop/dashboard')}
-                      className="px-4 py-2 bg-[#ee4d2d] hover:bg-[#d73211] text-white rounded-xl text-xs font-bold shadow-md shadow-[#ee4d2d]/15 transition-all cursor-pointer"
-                    >
-                      🏪 Kênh Người Bán
-                    </button>
-                  )}
+              {/* Quick Tags dưới Search bar */}
+              <div className="flex gap-4 text-[10px] text-white/90 font-medium mt-1.5 px-1 truncate">
+                <span className="hover:text-yellow-200 cursor-pointer" onClick={() => setSearchQuery('Áo')}>Áo thun</span>
+                <span className="hover:text-yellow-200 cursor-pointer" onClick={() => setSearchQuery('Đầm')}>Đầm thiết kế</span>
+                <span className="hover:text-yellow-200 cursor-pointer" onClick={() => setSearchQuery('Quần')}>Quần short</span>
+                <span className="hover:text-yellow-200 cursor-pointer" onClick={() => setSearchQuery('Vest')}>Áo Vest</span>
+                <span className="hover:text-yellow-200 cursor-pointer" onClick={() => setSearchQuery('Jean')}>Quần Jean</span>
+              </div>
+            </div>
 
-                  {/* Giỏ hàng */}
-                  {user.role === 'buyer' && (
-                    <button
-                      onClick={() => setShowCartModal(true)}
-                      className="relative p-2.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm transition-colors cursor-pointer mr-2"
-                    >
-                      🛒
-                      {totalCartItems > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-[#ff4081] text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
-                          {totalCartItems}
-                        </span>
-                      )}
-                    </button>
+            {/* Cart Icon & User Management */}
+            <div className="flex items-center gap-6 shrink-0">
+              
+              {/* Cart Badge */}
+              {(!user || user.role === 'buyer') && (
+                <button
+                  onClick={() => setShowCartModal(true)}
+                  className="relative p-2 text-white hover:text-yellow-100 transition-colors cursor-pointer"
+                >
+                  <svg className="w-7 h-7 fill-current" viewBox="0 0 24 24">
+                    <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+                  </svg>
+                  {totalCartItems > 0 && (
+                    <span className="absolute -top-1 -right-2 bg-yellow-400 text-[#ee4d2d] text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#ee4d2d] shadow">
+                      {totalCartItems}
+                    </span>
                   )}
+                </button>
+              )}
 
-                  {/* Thông tin Buyer & Xu */}
-                  <div 
-                    onClick={() => {
-                      if (user.role === 'buyer') {
-                        setShowProfileModal(true);
-                      }
-                    }}
-                    className={`flex items-center gap-4 bg-gray-50 border border-gray-100 px-4 py-1.5 rounded-xl ${
-                      user.role === 'buyer' ? 'cursor-pointer hover:bg-gray-100 hover:border-gray-200 transition-all' : ''
-                    }`}
-                    title={user.role === 'buyer' ? "Xem hồ sơ & lịch sử" : ""}
-                  >
-                    <div className="text-right">
-                      <p className="text-xs font-bold text-gray-700 flex items-center gap-1">
-                        {user.username}
-                        {user.role === 'buyer' && <span className="text-[10px]">👤</span>}
-                        {user.role === 'admin' && <span className="text-[10px]">👑</span>}
-                      </p>
-                      <p className="text-[9px] text-[#ff4081] font-bold uppercase tracking-wider">
-                        {user.role === 'admin' ? 'Quản Trị Viên' : (user.role === 'buyer' ? 'Người Mua' : 'Người Bán')}
-                      </p>
-                    </div>
+              {/* User Menu */}
+              {user && (
+                <div className="flex items-center gap-3 bg-white/10 px-3 py-1.5 rounded-xl border border-white/20">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-[10px] font-bold text-white leading-tight">{user.username}</p>
                     {user.role === 'buyer' && (
-                      <>
-                        <div className="h-8 w-[1px] bg-gray-200"></div>
-                        <div className="text-center flex items-center gap-2">
-                          <div>
-                            <p className="text-[9px] text-gray-400 font-bold uppercase">Xu AI</p>
-                            <span className="text-xs font-black text-gray-800">🪙 {user.credits}</span>
-                          </div>
-                          <button
-                            onClick={handleOpenRecharge}
-                            className="w-5 h-5 bg-[#ff4081] text-white text-[10px] rounded-full flex items-center justify-center font-bold hover:bg-[#ff80ab] active:scale-[0.9] transition-all cursor-pointer"
-                            title="Nạp tiền thật lấy xu AI"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </>
+                      <p className="text-[9px] text-yellow-200 font-extrabold uppercase">🪙 {user.credits} Xu AI</p>
                     )}
                   </div>
+                  
+                  {user.role === 'buyer' && (
+                    <button
+                      onClick={handleOpenRecharge}
+                      className="w-5 h-5 bg-yellow-400 hover:bg-yellow-300 text-[#ee4d2d] text-[11px] rounded-full flex items-center justify-center font-black shadow transition-all cursor-pointer"
+                      title="Nạp tiền thật lấy xu AI"
+                    >
+                      +
+                    </button>
+                  )}
 
-                  {/* Link tới Trang Admin */}
                   {user.role === 'admin' && (
                     <button
                       onClick={() => router.push('/admin/dashboard')}
-                      className="px-3 py-1 bg-gradient-to-r from-[#ff4081] to-[#ff80ab] text-white text-[10px] rounded-lg font-bold hover:shadow-sm active:scale-[0.95] transition-all cursor-pointer mr-2"
+                      className="px-2 py-0.5 bg-red-600 text-white text-[9px] rounded font-bold uppercase hover:bg-red-700 transition-all cursor-pointer"
                     >
-                      🛡️ Trang Admin
+                      🛡️ Admin
                     </button>
                   )}
 
-                  {/* Đăng xuất */}
+                  {user.role === 'shop_owner' && (
+                    <button
+                      onClick={() => router.push('/shop/dashboard')}
+                      className="px-2 py-0.5 bg-[#ee4d2d] text-white text-[9px] rounded font-bold uppercase hover:bg-orange-600 border border-white/30 transition-all cursor-pointer"
+                    >
+                      🏪 Kênh Bán
+                    </button>
+                  )}
+
                   <button
                     onClick={handleLogout}
-                    className="text-xs text-gray-400 hover:text-red-500 font-bold cursor-pointer transition-colors"
+                    className="text-[10px] text-white/70 hover:text-white font-bold cursor-pointer"
                   >
-                    Đăng xuất
+                    Thoát
                   </button>
-                </>
-              ) : (
-                // Nút đăng nhập dành cho Guest
-                <button
-                  onClick={() => router.push('/login')}
-                  className="px-5 py-2.5 bg-gradient-to-r from-[#ff4081] to-[#ff80ab] text-white rounded-xl text-xs font-bold shadow-md shadow-[#ff4081]/15 hover:shadow-lg transition-all cursor-pointer"
-                >
-                   Đăng nhập 
-                </button>
+                </div>
               )}
+
             </div>
           </div>
         </header>
 
-        {/* ===== BANNER CHÀO MỪNG ===== */}
-        <section className="bg-gradient-to-r from-[#ff4081]/10 to-[#ff80ab]/5 py-12 border-b border-gray-100">
-          <div className="max-w-[1200px] mx-auto px-6 text-center md:text-left md:flex items-center justify-between">
-            <div>
-              <span className="bg-[#ff4081]/10 text-[#ff4081] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Ứng dụng Mua Sắm Thế Hệ Mới
-              </span>
-              <h2 className="text-3xl font-black text-gray-800 mt-4 leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                Thử Đồ Ảo AI & Catwalk Video
-              </h2>
-              <p className="text-gray-500 text-xs mt-2 max-w-[620px] leading-relaxed">
-                Đột phá trải nghiệm TMĐT. Khách hàng có thể tự do ghép khuôn mặt của mình vào sản phẩm thời trang và dựng mô phỏng video Catwalk di chuyển thực tế theo đúng may đo cơ thể!
-              </p>
-            </div>
+        {/* ===== HERO BANNER SECTION ===== */}
+        <section className="max-w-[1200px] mx-auto px-4 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             
-            <div className="mt-6 md:mt-0 flex gap-3 justify-center">
-             
-              <button 
-                onClick={() => {
-                  const element = document.getElementById('catalog');
-                  element?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="px-6 py-3.5 bg-gradient-to-r from-[#ff4081] to-[#ff80ab] text-white rounded-xl text-xs font-bold shadow-md shadow-[#ff4081]/25 hover:shadow-lg active:scale-[0.98] transition-all cursor-pointer"
-              >
-                ✨ Mua sắm & Thử đồ ngay
-              </button>
+            {/* Banner chính bên trái */}
+            <div className="lg:col-span-2 relative h-[280px] bg-gradient-to-r from-[#ee4d2d] to-[#ff7337] rounded-lg overflow-hidden shadow flex items-center p-8 text-white">
+              <div className="max-w-[450px] z-10 space-y-4">
+                <span className="bg-white/20 backdrop-blur text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full">
+                  ✨ Trải nghiệm mua sắm đột phá
+                </span>
+                <h2 className="text-3xl font-black leading-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  Mặc thử trang phục ảo bằng công nghệ AI
+                </h2>
+                <p className="text-xs text-white/80 leading-relaxed font-medium">
+                  Không lo mua nhầm kích thước. Ghép khuôn mặt của bạn trực tiếp vào bất kỳ mẫu quần áo nào của các shop và xuất kết quả ảnh/video catwalk 3D tức thì!
+                </p>
+                <button
+                  onClick={() => {
+                    const catalog = document.getElementById('catalog');
+                    catalog?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-6 py-3 bg-white text-[#ee4d2d] hover:bg-yellow-50 text-xs font-black rounded-lg shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  🛍️ Trải Nghiệm Ngay
+                </button>
+              </div>
+              {/* Trang trí vòng tròn mờ */}
+              <div className="absolute -right-10 -bottom-20 w-80 h-80 bg-white/5 rounded-full blur-2xl"></div>
+              <div className="absolute right-12 top-6 w-32 h-32 bg-yellow-300/10 rounded-full blur-xl"></div>
             </div>
+
+            {/* Hai banner phụ xếp chồng bên phải */}
+            <div className="grid grid-rows-2 gap-3 h-[280px]">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-500 rounded-lg p-5 text-white flex flex-col justify-between shadow relative overflow-hidden">
+                <div className="z-10">
+                  <span className="bg-white/20 text-[9px] font-bold px-2 py-0.5 rounded uppercase">PayOS VietQR</span>
+                  <h3 className="text-sm font-black mt-2">Nạp tiền thật lấy xu AI</h3>
+                  <p className="text-[10px] text-white/80 mt-1">Nạp tự động siêu tốc qua ngân hàng MB</p>
+                </div>
+                <button
+                  onClick={handleOpenRecharge}
+                  className="w-fit px-4 py-1.5 bg-white text-blue-600 font-extrabold text-[10px] rounded-lg shadow cursor-pointer transition-all active:scale-[0.95]"
+                >
+                  ⚡ Nạp ngay
+                </button>
+              </div>
+
+              <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-lg p-5 text-white flex flex-col justify-between shadow relative overflow-hidden">
+                <div className="z-10">
+                  <span className="bg-white/20 text-[9px] font-bold px-2 py-0.5 rounded uppercase">Catwalk 3D</span>
+                  <h3 className="text-sm font-black mt-2">Tạo Video Catwalk sinh động</h3>
+                  <p className="text-[10px] text-white/80 mt-1">Mô phỏng cơ thể di chuyển với trang phục ảo</p>
+                </div>
+                <button
+                  onClick={() => {
+                    const catalog = document.getElementById('catalog');
+                    catalog?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-fit px-4 py-1.5 bg-white text-purple-600 font-extrabold text-[10px] rounded-lg shadow cursor-pointer transition-all active:scale-[0.95]"
+                >
+                  💃 Khám phá
+                </button>
+              </div>
+            </div>
+
           </div>
         </section>
 
-        {/* ===== DANH SÁCH SẢN PHẨM GRID ===== */}
-        <main id="catalog" className="max-w-[1200px] mx-auto px-6 py-12">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-base font-bold text-gray-800 flex items-center gap-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-              <span className="w-1.5 h-6 bg-[#ff4081] rounded-full"></span>
-              Sản phẩm Gợi ý hôm nay
-            </h3>
-            <span className="text-[11px] text-gray-400 font-semibold bg-white border border-gray-200 px-2.5 py-1 rounded-lg">
-              Tích hợp AI Virtual Try-on
-            </span>
+        {/* ===== QUICK ACCESS CIRCULAR SHORTCUTS ===== */}
+        <section className="max-w-[1200px] mx-auto px-4 mt-8">
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 grid grid-cols-4 md:grid-cols-8 gap-4 text-center">
+            {[
+              { label: 'Khung Giờ Sale', icon: '⏰', onClick: () => alert('Sự kiện Flash Sale đang diễn ra ở phía dưới!') },
+              { label: 'Mã Giảm Giá', icon: '🎟️', onClick: () => alert('Hệ thống mã giảm giá đang được bảo trì!') },
+              { label: 'Gì Cũng Rẻ', icon: '🏷️', onClick: () => alert('Các sản phẩm đồng giá đang bán ở Catalog!') },
+              { label: 'Shopee Mall', icon: '💎', onClick: () => alert('Đang xem các thương hiệu Mall chính hãng!') },
+              { label: 'Thời Trang Nam', icon: '👕', onClick: () => setSelectedCategoryFilter('male') },
+              { label: 'Thời Trang Nữ', icon: '👗', onClick: () => setSelectedCategoryFilter('female') },
+              { label: 'Thử Đồ AI ⚡', icon: '🔮', onClick: () => {
+                const catalog = document.getElementById('catalog');
+                catalog?.scrollIntoView({ behavior: 'smooth' });
+              }},
+              { label: 'Nạp Xu 🪙', icon: '🪙', onClick: handleOpenRecharge }
+            ].map((shortcut, idx) => (
+              <div
+                key={idx}
+                onClick={shortcut.onClick}
+                className="flex flex-col items-center gap-2 cursor-pointer group hover:-translate-y-1 transition-all duration-200"
+              >
+                <div className="w-12 h-12 rounded-full bg-orange-50 group-hover:bg-[#ee4d2d]/10 flex items-center justify-center text-2xl shadow-inner transition-colors">
+                  {shortcut.icon}
+                </div>
+                <span className="text-[10px] font-bold text-gray-600 group-hover:text-[#ee4d2d] leading-tight">
+                  {shortcut.label}
+                </span>
+              </div>
+            ))}
           </div>
+        </section>
 
-          {loadingProducts ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="animate-pulse bg-white border border-gray-100 rounded-xl p-4">
-                  <div className="bg-gray-100 w-full h-[220px] rounded-lg"></div>
-                  <div className="h-4 bg-gray-100 w-3/4 rounded mt-4"></div>
-                  <div className="h-3 bg-gray-100 w-1/2 rounded mt-2"></div>
-                  <div className="h-8 bg-gray-100 w-full rounded mt-4"></div>
+        {/* ===== SHOPEE FLASH SALE SECTION ===== */}
+        <section className="max-w-[1200px] mx-auto px-4 mt-8">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+            
+            {/* Flash Sale Header */}
+            <div className="p-4 flex items-center justify-between border-b border-gray-50 bg-[#fff5f2]">
+              <div className="flex items-center gap-3">
+                <span className="text-xl font-black text-[#ee4d2d] italic tracking-tighter" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  ⚡ FLASH SALE
+                </span>
+                
+                {/* Countdown Timer */}
+                <div className="flex items-center gap-1.5 text-xs text-white font-bold ml-4">
+                  <span className="bg-gray-800 px-2 py-1 rounded">01</span>
+                  <span className="text-gray-800 font-extrabold">:</span>
+                  <span className="bg-gray-800 px-2 py-1 rounded">45</span>
+                  <span className="text-gray-800 font-extrabold">:</span>
+                  <span className="bg-gray-800 px-2 py-1 rounded">28</span>
+                </div>
+              </div>
+              
+              <span className="text-xs text-gray-500 font-bold hover:text-[#ee4d2d] cursor-pointer">Xem tất cả &gt;</span>
+            </div>
+
+            {/* Flash Sale Horizontal Scroll */}
+            <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+              {products.slice(0, 4).map((p) => (
+                <div
+                  key={p._id}
+                  onClick={() => handleOpenDetail(p)}
+                  className="border border-gray-100 hover:border-[#ee4d2d] rounded-lg p-3 cursor-pointer flex flex-col justify-between hover:shadow-md transition-all group"
+                >
+                  <div className="relative pt-[100%] bg-gray-50 rounded overflow-hidden">
+                    <img
+                      src={p.garment_image_public_url}
+                      className="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform"
+                      alt=""
+                    />
+                    <div className="absolute top-0 right-0 bg-[#fde9e7] text-[#ee4d2d] text-[9px] font-bold px-1.5 py-0.5 rounded-bl">
+                      Giảm 30%
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    <p className="text-[#ee4d2d] font-black text-sm text-center">
+                      ₫{(p.price * 0.7).toLocaleString('vi-VN')}
+                    </p>
+                    
+                    {/* Progress Bar bán chạy */}
+                    <div className="w-full bg-orange-100 rounded-full h-4 relative flex items-center justify-center overflow-hidden">
+                      <div className="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full absolute left-0 top-0" style={{ width: '65%' }}></div>
+                      <span className="text-[9px] text-white font-extrabold z-10 uppercase tracking-wider">ĐANG BÁN CHẠY</span>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-16 bg-white border border-gray-100 rounded-2xl">
+
+          </div>
+        </section>
+
+        {/* ===== CATALOG MAIN SECTION ===== */}
+        <main id="catalog" className="max-w-[1200px] mx-auto px-4 mt-8">
+          
+          {/* Lọc danh mục dạng Tab của Shopee */}
+          <div className="bg-white border-b-2 border-[#ee4d2d] flex items-center justify-between mb-4 shadow-sm rounded-t-lg">
+            <div className="flex">
+              {[
+                { id: 'all', label: 'GỢI Ý HÔM NAY' },
+                { id: 'male', label: 'THỜI TRANG NAM' },
+                { id: 'female', label: 'THỜI TRANG NỮ' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedCategoryFilter(tab.id)}
+                  className={`px-6 py-4 text-xs font-bold transition-all cursor-pointer border-b-4 ${
+                    selectedCategoryFilter === tab.id
+                      ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#fff5f2]'
+                      : 'border-transparent text-gray-600 hover:text-[#ee4d2d]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            
+            <div className="px-4 text-[11px] text-gray-400 font-bold uppercase tracking-wider">
+              {searchQuery ? `Tìm kiếm: "${searchQuery}"` : 'Thử đồ AI Trực Tuyến'}
+            </div>
+          </div>
+
+          {/* Hiển thị sản phẩm */}
+          {loadingProducts ? (
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="animate-pulse bg-white border border-gray-100 rounded-lg p-3">
+                  <div className="bg-gray-100 w-full h-[150px] rounded"></div>
+                  <div className="h-3 bg-gray-100 w-3/4 rounded mt-3"></div>
+                  <div className="h-4 bg-gray-100 w-1/2 rounded mt-2"></div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-16 bg-white border border-gray-100 rounded-lg shadow-sm">
               <span className="text-4xl">🛍️</span>
-              <p className="text-sm font-semibold text-gray-400 mt-3">Chưa có sản phẩm nào được đăng bán.</p>
-              <p className="text-xs text-gray-300 mt-1">Vui lòng đăng nhập với tài khoản Seller để đăng sản phẩm đầu tiên của bạn.</p>
+              <p className="text-sm font-semibold text-gray-400 mt-3">Không tìm thấy sản phẩm phù hợp.</p>
+              <p className="text-xs text-gray-300 mt-1">Vui lòng thử tìm kiếm với từ khóa khác hoặc chuyển danh mục.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {products.map((product) => (
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+              {filteredProducts.map((product) => (
                 <div
                   key={product._id}
-                  className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl hover:scale-[1.01] transition-all duration-300 group flex flex-col justify-between"
+                  onClick={() => handleOpenDetail(product)}
+                  className="bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between group relative"
                 >
-                  <div className="relative pt-[120%] bg-gray-50 overflow-hidden">
+                  
+                  {/* Ảnh sản phẩm */}
+                  <div className="relative pt-[100%] bg-gray-50 overflow-hidden">
                     <img
                       src={product.garment_image_public_url}
                       alt={product.name}
-                      className="absolute inset-0 w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
+                      className="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
                     />
-                    <span className="absolute top-3 left-3 bg-gray-900/10 backdrop-blur-md text-[10px] font-bold px-2 py-0.5 rounded-md text-gray-700 capitalize">
-                      {product.category === 'female' ? 'Thời trang Nữ' : product.category === 'male' ? 'Thời trang Nam' : 'Unisex'}
+                    
+                    {/* Badge Mall / Yêu thích giống Shopee */}
+                    <span className="absolute top-2 left-2 bg-[#ee4d2d] text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow">
+                      Mall
                     </span>
                   </div>
 
-                  <div className="p-4 flex-1 flex flex-col justify-between">
+                  {/* Chi tiết */}
+                  <div className="p-2.5 flex-1 flex flex-col justify-between space-y-2">
                     <div>
-                      <p className="text-[10px] font-bold text-[#ff4081] tracking-wider uppercase mb-1 truncate">
-                        🏪 {product.shop_id?.name || 'SmartFit Store'}
-                      </p>
-                      <h4 className="text-xs font-bold text-gray-700 line-clamp-2 min-h-[32px] mb-2">
+                      {/* Tên sản phẩm */}
+                      <h4 className="text-xs font-semibold text-gray-800 line-clamp-2 min-h-[32px] leading-tight">
                         {product.name}
                       </h4>
                     </div>
 
                     <div>
-                      <div className="flex items-baseline gap-1 mb-3">
-                        <span className="text-[10px] font-bold text-gray-400">₫</span>
-                        <span className="text-sm font-black text-gray-800">
-                          {product.price.toLocaleString('vi-VN')}
+                      {/* Giá & đã bán giống Shopee */}
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-sm font-black text-[#ee4d2d]">
+                          ₫{product.price.toLocaleString('vi-VN')}
+                        </span>
+                        <span className="text-[9px] text-gray-400 font-bold shrink-0">
+                          Đã bán 1.1k
                         </span>
                       </div>
 
-                      <button
-                        onClick={() => handleOpenDetail(product)}
-                        className="w-full py-2.5 bg-gray-50 group-hover:bg-[#ff4081] border border-gray-200 group-hover:border-transparent text-[11px] font-bold text-gray-600 group-hover:text-white rounded-xl shadow-sm transition-all duration-300 cursor-pointer text-center"
-                      >
-                        Chi tiết & Thử đồ AI
-                      </button>
+                      {/* Địa điểm */}
+                      <p className="text-[9px] text-gray-400 font-medium text-right mt-1.5 pt-1.5 border-t border-gray-50">
+                        Hà Nội
+                      </p>
                     </div>
+
                   </div>
                 </div>
               ))}
