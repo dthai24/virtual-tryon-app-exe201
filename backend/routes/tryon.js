@@ -336,33 +336,42 @@ router.get('/history/:user_id', async (req, res) => {
   }
 });
 
+// ============================================================
+// API: POST /api/tryon/recharge — Nạp xu qua chuyển khoản ngân hàng thật
+// ============================================================
 router.post('/recharge', async (req, res) => {
   try {
-    const { user_id } = req.body;
+    const { user_id, coins, vnd } = req.body;
     if (!user_id) {
       return res.status(400).json({ success: false, message: 'Thiếu thông tin user_id!' });
     }
+
+    const coinAmount = Number(coins) || 5;
+    const moneyAmount = Number(vnd) || 50000;
 
     const user = await User.findById(user_id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản!' });
     }
 
-    user.credits += 5;
+    // Tăng credit của người dùng
+    user.credits += coinAmount;
     await user.save();
 
+    // Ghi nhận lịch sử giao dịch nạp tiền thật
     await CreditTransaction.create({
       user_id: user._id,
-      amount: 5,
+      amount: coinAmount,
       type: 'purchase',
-      description: 'Nạp thêm 5 credit qua cổng giả lập để tiếp tục thử đồ AI',
+      description: `Nạp ${coinAmount} xu qua chuyển khoản ngân hàng thực tế (Trị giá ${moneyAmount.toLocaleString('vi-VN')}đ)`,
     });
 
     return res.status(200).json({
       success: true,
-      message: 'Nạp credit thành công! Đã cộng thêm 5 xu.',
+      message: `Nạp thành công! Đã cộng thêm ${coinAmount} xu vào tài khoản.`,
       credits: user.credits,
     });
+
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

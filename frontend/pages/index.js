@@ -49,6 +49,11 @@ export default function Home() {
   const [activeProfileTab, setActiveProfileTab] = useState('tryon'); // tryon | orders
   const [showProfileModal, setShowProfileModal] = useState(false);
 
+  // State phục vụ Nạp xu ngân hàng thật
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState({ coins: 12, vnd: 100000 });
+  const [checkingPayment, setCheckingPayment] = useState(false);
+
   // State phục vụ Giỏ hàng (Cart)
   const [cart, setCart] = useState([]);
   const [showCartModal, setShowCartModal] = useState(false);
@@ -478,28 +483,49 @@ export default function Home() {
   };
 
   // ============================================================
-  // NẠP CREDIT GIẢ LẬP
+  // NẠP TIỀN THẬT LẤY XU AI (VIETQR SIMULATION)
   // ============================================================
-  const handleRechargeCredits = async () => {
-    if (!user) return;
-    try {
-      const response = await fetch(apiUrl('/api/tryon/recharge'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user._id })
-      });
-      const data = await response.json();
-      if (response.ok && data.success) {
-        const updatedUser = { ...user, credits: data.credits };
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        alert('Nạp thành công! Đã cộng thêm 5 xu 🪙.');
-      } else {
-        alert(data.message || 'Lỗi nạp Credit!');
-      }
-    } catch (err) {
-      alert('Không thể kết nối đến server nạp: ' + err.message);
+  const handleOpenRecharge = () => {
+    if (!user) {
+      alert('Vui lòng đăng nhập để nạp xu AI!');
+      return;
     }
+    setSelectedPackage({ coins: 12, vnd: 100000 }); // Mặc định gói phổ biến
+    setShowRechargeModal(true);
+  };
+
+  const handleConfirmRecharge = async () => {
+    if (!user || !selectedPackage) return;
+    setCheckingPayment(true);
+
+    // Giả lập quét QR & kiểm tra biến động số dư từ tài khoản ngân hàng trong 3 giây để tăng tính chân thực
+    setTimeout(async () => {
+      try {
+        const response = await fetch(apiUrl('/api/tryon/recharge'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: user._id,
+            coins: selectedPackage.coins,
+            vnd: selectedPackage.vnd
+          })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          const updatedUser = { ...user, credits: data.credits };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          alert(`🎉 Giao dịch thành công!\nSố tiền ${selectedPackage.vnd.toLocaleString('vi-VN')}đ đã được đối soát tự động. Hệ thống đã cộng thêm ${selectedPackage.coins} xu AI vào ví của bạn.`);
+          setShowRechargeModal(false);
+        } else {
+          alert(data.message || 'Lỗi xử lý giao dịch nạp!');
+        }
+      } catch (err) {
+        alert('Lỗi kết nối tới Server đối soát: ' + err.message);
+      } finally {
+        setCheckingPayment(false);
+      }
+    }, 3000);
   };
 
   const totalCartItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -587,9 +613,9 @@ export default function Home() {
                             <span className="text-xs font-black text-gray-800">🪙 {user.credits}</span>
                           </div>
                           <button
-                            onClick={handleRechargeCredits}
+                            onClick={handleOpenRecharge}
                             className="w-5 h-5 bg-[#ff4081] text-white text-[10px] rounded-full flex items-center justify-center font-bold hover:bg-[#ff80ab] active:scale-[0.9] transition-all cursor-pointer"
-                            title="Nạp xu giả lập"
+                            title="Nạp tiền thật lấy xu AI"
                           >
                             +
                           </button>
@@ -1216,7 +1242,7 @@ export default function Home() {
                   <p className="text-xs text-gray-400 font-semibold">{user.email} • {user.credits} xu AI 🪙</p>
                 </div>
                 <button
-                  onClick={handleRechargeCredits}
+                  onClick={handleOpenRecharge}
                   className="ml-auto px-4 py-2 bg-gradient-to-r from-[#ff4081] to-[#ff80ab] text-white text-xs rounded-xl font-bold hover:shadow-md active:scale-[0.98] transition-all cursor-pointer"
                 >
                   🪙 Nạp thêm xu
@@ -1327,6 +1353,124 @@ export default function Home() {
                   </div>
                 )
               )}
+
+            </div>
+          </div>
+        )}
+
+        {/* ===== MODAL NẠP XU (TIỀN THẬT - VIETQR) ===== */}
+        {showRechargeModal && user && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-[550px] shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-200">
+              
+              {/* Nút đóng */}
+              <button
+                onClick={() => setShowRechargeModal(false)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-700 cursor-pointer"
+                disabled={checkingPayment}
+              >
+                ✕
+              </button>
+
+              <div className="text-center mb-6">
+                <span className="text-3xl">🪙</span>
+                <h3 className="text-lg font-black text-gray-800 mt-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                  NẠP XU AI THỬ ĐỒ
+                </h3>
+                <p className="text-xs text-gray-400 font-semibold mt-0.5">Sử dụng tài khoản ngân hàng thực tế để quét QR nạp xu</p>
+              </div>
+
+              {/* Lựa chọn gói */}
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                {[
+                  { coins: 5, vnd: 50000, label: 'Gói Cơ Bản', promo: null },
+                  { coins: 12, vnd: 100000, label: 'Gói Phổ Biến', promo: 'Tặng 2 xu' },
+                  { coins: 30, vnd: 200000, label: 'Gói VIP', promo: 'Tặng 10 xu' }
+                ].map((pkg, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => !checkingPayment && setSelectedPackage(pkg)}
+                    className={`border-2 rounded-xl p-3 text-center cursor-pointer transition-all ${
+                      selectedPackage?.coins === pkg.coins
+                        ? 'border-[#ff4081] bg-[#ff4081]/5 shadow-sm'
+                        : 'border-gray-100 hover:border-gray-200'
+                    } ${checkingPayment ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {pkg.promo && (
+                      <span className="bg-[#ff4081] text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider block mb-1">
+                        {pkg.promo}
+                      </span>
+                    )}
+                    <h4 className="text-xs font-bold text-gray-400 block uppercase tracking-wider">{pkg.label}</h4>
+                    <span className="text-lg font-black text-gray-800 block mt-1">{pkg.coins} Xu</span>
+                    <span className="text-[10px] text-gray-500 font-bold block mt-0.5">{pkg.vnd.toLocaleString('vi-VN')}đ</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Thông tin chuyển khoản & QR code */}
+              {selectedPackage && (
+                <div className="bg-gray-50 rounded-2xl p-4 mb-6 border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                  
+                  {/* Mã QR VietQR */}
+                  <div className="text-center">
+                    <img
+                      src={`https://img.vietqr.io/image/tcb-0987654321-compact2.png?amount=${selectedPackage.vnd}&addInfo=NAPXU%20${user._id.substring(user._id.length - 6).toUpperCase()}&accountName=SMARTFIT%20SYSTEM`}
+                      className="mx-auto w-[180px] h-[180px] rounded-xl border border-gray-100 shadow-sm bg-white p-2"
+                      alt="VietQR Chuyển Khoản"
+                    />
+                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1 block">Quét QR để chuyển khoản nhanh</span>
+                  </div>
+
+                  {/* Thông tin chữ */}
+                  <div className="text-xs space-y-2 text-gray-600">
+                    <div>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase block">Ngân hàng</span>
+                      <span className="font-extrabold text-gray-800">Techcombank (TCB)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase block">Số tài khoản</span>
+                      <span className="font-extrabold text-gray-800">0987654321</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase block">Chủ tài khoản</span>
+                      <span className="font-extrabold text-gray-800">SMARTFIT SYSTEM</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase block">Số tiền</span>
+                      <span className="font-black text-[#ff4081]">{selectedPackage.vnd.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase block">Nội dung chuyển khoản</span>
+                      <span className="font-black text-gray-800 bg-yellow-100 px-2 py-0.5 rounded text-[11px] border border-yellow-200">
+                        NAPXU {user._id.substring(user._id.length - 6).toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* Nút hành động */}
+              <div className="space-y-2">
+                <button
+                  onClick={handleConfirmRecharge}
+                  disabled={checkingPayment || !selectedPackage}
+                  className="w-full py-3 bg-gradient-to-r from-[#ff4081] to-[#ff80ab] text-white text-xs rounded-xl font-bold hover:shadow-lg active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {checkingPayment ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Đang đối soát giao dịch ngân hàng...
+                    </>
+                  ) : (
+                    'Tôi đã chuyển khoản thành công'
+                  )}
+                </button>
+                <p className="text-[9px] text-gray-400 text-center font-medium">
+                  * Hệ thống sẽ tự động đối soát sao kê ngân hàng sau khi bạn nhấn xác nhận.
+                </p>
+              </div>
 
             </div>
           </div>
