@@ -387,8 +387,14 @@ router.post('/casso-webhook', async (req, res) => {
     console.log(`\n🔔 [Payment Webhook] Nhận request mới:`, JSON.stringify(body, null, 2));
 
     // 1. KIỂM TRA NẾU LÀ PAYOS PAYLOAD
-    if (body.code !== undefined && body.desc !== undefined && body.data) {
+    if (body.code !== undefined && body.desc !== undefined) {
       console.log('💳 [Payment Webhook] Nhận dữ liệu từ PayOS');
+
+      // Nếu là request xác thực webhook từ PayOS (desc: "confirm" hoặc data rỗng)
+      if (body.desc === 'confirm' || !body.data) {
+        console.log('🔗 [Payment Webhook] Trả lời xác thực Webhook từ PayOS thành công.');
+        return res.status(200).json({ success: true, message: 'Webhook confirmed successfully' });
+      }
 
       const payosData = body.data;
       const payosChecksumKey = '8634eaec7a590643b26c1dfc6853400dca9f9ccb2eae09f5c96cfc7031548c73';
