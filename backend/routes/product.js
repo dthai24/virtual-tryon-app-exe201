@@ -54,12 +54,29 @@ router.get('/', async (req, res) => {
       .populate('shop_id', 'name logo')
       .sort({ createdAt: -1 });
 
+    // Tính toán số lượng bán thực tế từ Model Order
+    const Order = require('../models/Order');
+    const orders = await Order.find({ status: { $ne: 'cancelled' } });
+    const salesMap = {};
+    orders.forEach(order => {
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach(item => {
+          const prodId = item.product_id ? item.product_id.toString() : '';
+          if (prodId) {
+            salesMap[prodId] = (salesMap[prodId] || 0) + item.quantity;
+          }
+        });
+      }
+    });
+
     // Chuyển đổi garment_image_url thành public HTTP url nếu là path cục bộ
     const processedProducts = products.map((prod) => {
       const imageUrl = productImagePublicUrl(prod.garment_image_url);
+      const prodIdStr = prod._id.toString();
       return {
         ...prod.toObject(),
         garment_image_public_url: imageUrl,
+        sales: salesMap[prodIdStr] || 0,
       };
     });
 

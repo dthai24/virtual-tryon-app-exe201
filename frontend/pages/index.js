@@ -80,6 +80,32 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
 
+  // Bộ đếm ngược thời gian thực đến cuối ngày (Flash Sale)
+  const [timeLeft, setTimeLeft] = useState({ hours: '00', minutes: '00', seconds: '00' });
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      const diff = endOfDay - now;
+      if (diff <= 0) {
+        setTimeLeft({ hours: '00', minutes: '00', seconds: '00' });
+      } else {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        setTimeLeft({
+          hours: String(hours).padStart(2, '0'),
+          minutes: String(minutes).padStart(2, '0'),
+          seconds: String(seconds).padStart(2, '0')
+        });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Lọc sản phẩm theo tìm kiếm và danh mục
   const filteredProducts = (products || []).filter(product => {
     if (!product || !product.name) return false;
@@ -819,11 +845,11 @@ export default function Home() {
                 
                 {/* Countdown Timer */}
                 <div className="flex items-center gap-1.5 text-xs text-white font-bold ml-4">
-                  <span className="bg-gray-800 px-2 py-1 rounded">01</span>
+                  <span className="bg-gray-800 px-2 py-1 rounded">{timeLeft.hours}</span>
                   <span className="text-gray-800 font-extrabold">:</span>
-                  <span className="bg-gray-800 px-2 py-1 rounded">45</span>
+                  <span className="bg-gray-800 px-2 py-1 rounded">{timeLeft.minutes}</span>
                   <span className="text-gray-800 font-extrabold">:</span>
-                  <span className="bg-gray-800 px-2 py-1 rounded">28</span>
+                  <span className="bg-gray-800 px-2 py-1 rounded">{timeLeft.seconds}</span>
                 </div>
               </div>
               
@@ -832,36 +858,41 @@ export default function Home() {
 
             {/* Flash Sale Horizontal Scroll */}
             <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-              {products.slice(0, 4).map((p) => (
-                <div
-                  key={p._id}
-                  onClick={() => handleOpenDetail(p)}
-                  className="border border-gray-100 hover:border-[#ff4081] rounded-lg p-3 cursor-pointer flex flex-col justify-between hover:shadow-md transition-all group"
-                >
-                  <div className="relative pt-[100%] bg-gray-50 rounded overflow-hidden">
-                    <img
-                      src={p.garment_image_public_url}
-                      className="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform"
-                      alt=""
-                    />
-                    <div className="absolute top-0 right-0 bg-[#fff0f5] text-[#ff4081] text-[9px] font-bold px-1.5 py-0.5 rounded-bl">
-                      Giảm 30%
+              {products.slice(0, 4).map((p) => {
+                const soldCount = p.sales || 0;
+                const totalStock = (p.sales || 0) + (p.stock || 0) || 1;
+                const percent = Math.min(100, Math.round((soldCount / totalStock) * 100));
+                
+                return (
+                  <div
+                    key={p._id}
+                    onClick={() => handleOpenDetail(p)}
+                    className="border border-gray-100 hover:border-[#ff4081] rounded-lg p-3 cursor-pointer flex flex-col justify-between hover:shadow-md transition-all group"
+                  >
+                    <div className="relative pt-[100%] bg-gray-50 rounded overflow-hidden">
+                      <img
+                        src={p.garment_image_public_url}
+                        className="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-105 transition-transform"
+                        alt=""
+                      />
                     </div>
-                  </div>
 
-                  <div className="mt-3 space-y-2">
-                    <p className="text-[#ff4081] font-black text-sm text-center">
-                      ₫{(p.price * 0.7).toLocaleString('vi-VN')}
-                    </p>
-                    
-                    {/* Progress Bar bán chạy */}
-                    <div className="w-full bg-pink-100 rounded-full h-4 relative flex items-center justify-center overflow-hidden">
-                      <div className="bg-gradient-to-r from-[#ff4081] to-[#ff80ab] h-full rounded-full absolute left-0 top-0" style={{ width: '65%' }}></div>
-                      <span className="text-[9px] text-white font-extrabold z-10 uppercase tracking-wider">ĐANG BÁN CHẠY</span>
+                    <div className="mt-3 space-y-2">
+                      <p className="text-[#ff4081] font-black text-sm text-center">
+                        ₫{p.price.toLocaleString('vi-VN')}
+                      </p>
+                      
+                      {/* Progress Bar bán chạy thực tế */}
+                      <div className="w-full bg-pink-100 rounded-full h-4 relative flex items-center justify-center overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#ff4081] to-[#ff80ab] h-full rounded-full absolute left-0 top-0" style={{ width: `${percent}%` }}></div>
+                        <span className="text-[9px] text-white font-extrabold z-10 uppercase tracking-wider">
+                          {soldCount > 0 ? `ĐÃ BÁN ${soldCount}` : 'SẴN SÀNG'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
           </div>
@@ -947,19 +978,19 @@ export default function Home() {
                     </div>
 
                     <div>
-                      {/* Giá & đã bán giống Shopee */}
+                      {/* Giá & đã bán thực tế */}
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-sm font-black text-[#ff4081]">
                           ₫{product.price.toLocaleString('vi-VN')}
                         </span>
                         <span className="text-[9px] text-gray-400 font-bold shrink-0">
-                          Đã bán 1.1k
+                          Đã bán {product.sales || 0}
                         </span>
                       </div>
 
-                      {/* Địa điểm */}
-                      <p className="text-[9px] text-gray-400 font-medium text-right mt-1.5 pt-1.5 border-t border-gray-50">
-                        Hà Nội
+                      {/* Cửa hàng thật */}
+                      <p className="text-[9px] text-gray-400 font-medium text-right mt-1.5 pt-1.5 border-t border-gray-50 truncate" title={product.shop_id?.name || 'SmartFit Store'}>
+                        🏪 {product.shop_id?.name || 'SmartFit Store'}
                       </p>
                     </div>
 
