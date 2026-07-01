@@ -558,7 +558,7 @@ export default function ShopProfile() {
           <div className="bg-gradient-to-r from-[#ff4081] to-[#ff80ab] p-6 rounded-2xl shadow-sm text-white">
             <div className="bg-black/20 backdrop-blur-md border border-white/10 p-6 rounded-xl flex flex-col md:flex-row items-center justify-between gap-8">
               
-              {/* Bên trái: Avatar + Tên + Nút tương tác */}
+              {/* Bên trái: Avatar + Tên + Trạng thái thực tế */}
               <div className="flex items-center gap-4 shrink-0 w-full md:w-auto">
                 <div className="w-16 h-16 rounded-full bg-white text-[#ff4081] flex items-center justify-center text-3xl font-black shadow border-2 border-white/40 shrink-0">
                   🏪
@@ -568,56 +568,40 @@ export default function ShopProfile() {
                     {shop.name}
                   </h2>
                   <p className="text-[10px] text-white/80 font-bold flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-green-400 inline-block animate-pulse"></span>
-                    Vừa mới online 1 phút trước
+                    <span className={`w-2 h-2 rounded-full inline-block ${shop.status === 'active' ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></span>
+                    Trạng thái: {shop.status === 'active' ? 'Đang hoạt động' : 'Tạm nghỉ'}
                   </p>
-                  
-                  <div className="flex items-center gap-2 pt-1.5">
-                    <button
-                      onClick={() => setIsFollowing(!isFollowing)}
-                      className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all active:scale-[0.98] cursor-pointer ${
-                        isFollowing
-                          ? 'bg-white/20 border border-white/30 text-white'
-                          : 'bg-white text-[#ff4081] hover:bg-yellow-50 shadow'
-                      }`}
-                    >
-                      {isFollowing ? '✓ Đang Theo Dõi' : '＋ Theo Dõi'}
-                    </button>
-                    <button
-                      onClick={() => alert('Hộp thoại chat riêng với Shop đang được bảo trì!')}
-                      className="px-4 py-1.5 bg-transparent border border-white/30 hover:bg-white/10 text-white rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer"
-                    >
-                      💬 Chat Ngay
-                    </button>
-                  </div>
                 </div>
               </div>
 
               {/* Dải phân cách dọc */}
               <div className="hidden md:block h-16 w-[1px] bg-white/15"></div>
 
-              {/* Bên phải: Chỉ số thống kê */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-8 text-xs font-semibold w-full flex-1 max-w-[650px]">
-                <div className="space-y-1">
-                  <span className="text-[10px] text-white/70 block">👕 Sản phẩm đăng bán</span>
-                  <strong className="text-sm font-black">{products.length} mẫu quần áo</strong>
+              {/* Bên phải: Chỉ số thống kê thật */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold w-full flex-1 max-w-[600px]">
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-white/70 block">👕 Sản phẩm đăng bán</span>
+                    <strong className="text-sm font-black text-white">{products.length} mẫu quần áo</strong>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-white/70 block">📅 Thời gian tham gia</span>
+                    <strong className="text-sm font-black text-white">{(() => {
+                      if (!shop.createdAt) return 'Mới tham gia';
+                      const diffMs = new Date() - new Date(shop.createdAt);
+                      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                      if (diffDays <= 0) return 'Mới tham gia hôm nay';
+                      if (diffDays < 30) return `${diffDays} ngày trước`;
+                      const diffMonths = Math.max(1, Math.floor(diffDays / 30));
+                      return `${diffMonths} tháng trước`;
+                    })()}</strong>
+                  </div>
                 </div>
+                
                 <div className="space-y-1">
-                  <span className="text-[10px] text-white/70 block">⭐ Đánh giá cửa hàng</span>
-                  <strong className="text-sm font-black">4.9 / 5.0 (98 lượt)</strong>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-white/70 block">💬 Tỷ lệ phản hồi</span>
-                  <strong className="text-sm font-black">100% (Trong vài phút)</strong>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] text-white/70 block">📅 Thời gian tham gia</span>
-                  <strong className="text-sm font-black">3 tháng trước</strong>
-                </div>
-                <div className="space-y-1 col-span-2">
                   <span className="text-[10px] text-white/70 block">📝 Mô tả cửa hàng</span>
-                  <p className="text-[10px] font-medium text-white/80 line-clamp-2 leading-relaxed">
-                    {shop.description || 'Chuyên cung cấp quần áo thời trang thiết kế nam nữ đón đầu xu hướng. Tích hợp thử đồ AI siêu thực để bạn tự chọn kích cỡ phù hợp.'}
+                  <p className="text-[10.5px] font-medium text-white/90 leading-relaxed max-h-[90px] overflow-y-auto pr-1">
+                    {shop.description || 'Cửa hàng thời trang tích hợp công nghệ AI Virtual Try-on giúp bạn mặc thử trang phục ảo tức thì.'}
                   </p>
                 </div>
               </div>
