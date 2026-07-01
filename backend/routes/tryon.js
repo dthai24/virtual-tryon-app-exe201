@@ -377,4 +377,105 @@ router.post('/recharge', async (req, res) => {
   }
 });
 
+// ============================================================
+// API: POST /api/tryon/casso-webhook — Cổng thanh toán thực tế (Casso)
+// Nhận biến động số dư thực tế từ ngân hàng và tự động cộng xu
+// ============================================================
+router.post('/casso-webhook', async (req, res) => {
+  try {
+    const secureToken = req.headers['secure-token'] || req.headers['Secure-Token'] || req.headers['secure_token'];
+    const expectedToken = process.env.CASSO_SECURE_TOKEN || 'SmartFitSecureToken123';
+
+    if (secureToken !== expectedToken) {
+      console.log('⚠️ [Casso Webhook] Token bảo mật không chính xác:', secureToken);
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const { data } = req.body;
+    if (!data || !Array.isArray(data)) {
+      return res.status(400).json({ success: false, message: 'Invalid payload' });
+    }
+
+    console.log(`\n🔔 [Casso Webhook] Nhận ${data.length} giao dịch ngân hàng mới:`);
+
+    for (const transaction of data) {
+      const description = transaction.description || '';
+      const amount = Number(transaction.amount) || 0;
+
+      console.log(`- GD: ${transaction.tid} | Số tiền: ${amount}đ | Nội dung: "${description}"`);
+
+      // Tìm cú pháp NAPXU và mã định danh 6 ký tự
+      const match = description.match(/NAPXU\s+([A-F0-9]{6})/i);
+      if (!match) {
+        console.log(`⚠️ Nội dung không chứa mã NAPXU định danh.`);
+        continue;
+      }
+
+      const shortId = match[1].toLowerCase();
+
+      // Tìm user có 6 ký tự cuối của ID trùng khớp
+      const users = await User.find({});
+      const user = users.find(u => u._id.toString().substring(u._id.toString().length - 6) === shortId);
+
+      if (!user) {
+        console.log(`❌ Không tìm thấy user có ID khớp với mã: ${shortId}`);
+        continue;
+      }
+
+      // Đánh giá gói nạp dựa trên số tiền thực tế chuyển
+      let coinsToAdd = 0;
+      if (amount >= 200000) {
+        coinsToAdd = 30;
+      } else if (amount >= 100000) {
+        coinsToAdd = 12;
+      } else if (amount >= 50000) {
+        coinsToAdd = 5;
+      } else {
+        // Tỷ lệ lẻ: 10k VND = 1 xu AI
+        coinsToAdd = Math.floor(amount / 10000);
+      }
+
+      if (coinsToAdd <= 0) {
+        console.log(`⚠️ Số tiền ${amount}đ không đủ quy đổi xu.`);
+        continue;
+      }
+
+      // Cộng xu vào tài khoản người dùng
+      user.credits += coinsToAdd;
+      await user.save();
+
+      // Lưu lịch sử giao dịch nạp tiền
+      await CreditTransaction.create({
+        user_id: user._id,
+        amount: coinsToAdd,
+        type: 'purchase',
+        description: `Nạp ${coinsToAdd} xu qua ngân hàng thật (Mã GD: ${transaction.tid}, Số tiền: ${amount.toLocaleString('vi-VN')}đ)`,
+      });
+
+      console.log(`✅ Nạp thành công ${coinsToAdd} xu cho tài khoản ${user.username} (${user.email})`);
+    }
+
+    return res.status(200).json({ success: true, message: 'Processed successfully' });
+
+  } catch (error) {
+    console.error('❌ Lỗi xử lý Casso Webhook:', error.message);
+    return res.status(500).json({ success: true, message: error.message });
+  }
+});
+
+// ============================================================
+// API: GET /api/tryon/check-recharge/:user_id — Kiểm tra số xu hiện tại
+// ============================================================
+router.get('/check-recharge/:user_id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.user_id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản!' });
+    }
+    return res.status(200).json({ success: true, credits: user.credits });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;

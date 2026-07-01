@@ -498,32 +498,44 @@ export default function Home() {
     if (!user || !selectedPackage) return;
     setCheckingPayment(true);
 
-    // Giả lập quét QR & kiểm tra biến động số dư từ tài khoản ngân hàng trong 3 giây để tăng tính chân thực
-    setTimeout(async () => {
+    const initialCredits = user.credits;
+    let attempts = 0;
+    const maxAttempts = 6; // Kiểm tra 6 lần, mỗi lần cách nhau 3 giây (tổng 18 giây)
+
+    const checkInterval = setInterval(async () => {
+      attempts++;
       try {
-        const response = await fetch(apiUrl('/api/tryon/recharge'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: user._id,
-            coins: selectedPackage.coins,
-            vnd: selectedPackage.vnd
-          })
-        });
+        const response = await fetch(apiUrl(`/api/tryon/check-recharge/${user._id}`));
         const data = await response.json();
+
         if (response.ok && data.success) {
-          const updatedUser = { ...user, credits: data.credits };
-          setUser(updatedUser);
-          localStorage.setItem('user', JSON.stringify(updatedUser));
-          alert(`🎉 Giao dịch thành công!\nSố tiền ${selectedPackage.vnd.toLocaleString('vi-VN')}đ đã được đối soát tự động. Hệ thống đã cộng thêm ${selectedPackage.coins} xu AI vào ví của bạn.`);
-          setShowRechargeModal(false);
+          if (data.credits > initialCredits) {
+            clearInterval(checkInterval);
+            const addedCoins = data.credits - initialCredits;
+            const updatedUser = { ...user, credits: data.credits };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            alert(`🎉 Giao dịch thành công ngân hàng thực tế!\nHệ thống đã phát hiện biến động số dư tăng từ tài khoản ngân hàng của bạn và tự động cộng thêm ${addedCoins} xu AI.`);
+            setShowRechargeModal(false);
+            setCheckingPayment(false);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            alert(`⏳ Hệ thống ngân hàng chưa hoàn thành giao dịch.\nNếu bạn đã chuyển tiền thành công, vui lòng chờ 1-2 phút để tiền vào tài khoản và nhấn nút "Tôi đã chuyển khoản thành công" để đối soát lại nhé!`);
+            setCheckingPayment(false);
+          }
         } else {
-          alert(data.message || 'Lỗi xử lý giao dịch nạp!');
+          if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            alert('Có lỗi xảy ra khi đối soát giao dịch ngân hàng. Vui lòng thử lại sau.');
+            setCheckingPayment(false);
+          }
         }
       } catch (err) {
-        alert('Lỗi kết nối tới Server đối soát: ' + err.message);
-      } finally {
-        setCheckingPayment(false);
+        if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          alert('Lỗi kết nối tới hệ thống ngân hàng đối soát: ' + err.message);
+          setCheckingPayment(false);
+        }
       }
     }, 3000);
   };
