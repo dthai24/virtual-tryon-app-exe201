@@ -611,9 +611,10 @@ export default function Home() {
                       <p className="text-xs font-bold text-gray-700 flex items-center gap-1">
                         {user.username}
                         {user.role === 'buyer' && <span className="text-[10px]">👤</span>}
+                        {user.role === 'admin' && <span className="text-[10px]">👑</span>}
                       </p>
                       <p className="text-[9px] text-[#ff4081] font-bold uppercase tracking-wider">
-                        {user.role === 'buyer' ? 'Người Mua' : 'Người Bán'}
+                        {user.role === 'admin' ? 'Quản Trị Viên' : (user.role === 'buyer' ? 'Người Mua' : 'Người Bán')}
                       </p>
                     </div>
                     {user.role === 'buyer' && (
@@ -635,6 +636,16 @@ export default function Home() {
                       </>
                     )}
                   </div>
+
+                  {/* Link tới Trang Admin */}
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={() => router.push('/admin/dashboard')}
+                      className="px-3 py-1 bg-gradient-to-r from-[#ff4081] to-[#ff80ab] text-white text-[10px] rounded-lg font-bold hover:shadow-sm active:scale-[0.95] transition-all cursor-pointer mr-2"
+                    >
+                      🛡️ Trang Admin
+                    </button>
+                  )}
 
                   {/* Đăng xuất */}
                   <button

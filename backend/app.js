@@ -79,11 +79,13 @@ const productRoutes = require('./routes/product');
 const tryonRoutes = require('./routes/tryon');
 const authRoutes = require('./routes/auth');
 const orderRoutes = require('./routes/order');
+const adminRoutes = require('./routes/admin');
 
 app.use('/api/products', productRoutes);
 app.use('/api/tryon', tryonRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/user/test', async (req, res) => {
   try {

@@ -25,6 +25,8 @@ export default function Login() {
     setTimeout(() => {
       if (userObj.role === 'shop_owner') {
         router.push('/shop/dashboard');
+      } else if (userObj.role === 'admin') {
+        router.push('/admin/dashboard');
       } else {
         router.push('/');
       }

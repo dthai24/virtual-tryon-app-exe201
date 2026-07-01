@@ -378,13 +378,6 @@ router.post('/recharge', async (req, res) => {
 });
 
 // ============================================================
-// API: GET /api/tryon/casso-webhook — Cổng thanh toán thực tế (Xác thực trạng thái hoạt động)
-// ============================================================
-router.get('/casso-webhook', (req, res) => {
-  return res.status(200).json({ success: true, message: 'PayOS webhook endpoint is active' });
-});
-
-// ============================================================
 // API: POST /api/tryon/casso-webhook — Cổng thanh toán thực tế (Casso hoặc PayOS)
 // Nhận biến động số dư thực tế từ ngân hàng và tự động cộng xu
 // ============================================================
